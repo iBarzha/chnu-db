@@ -1,0 +1,21 @@
+[
+    {
+        "model": "api.User",
+        "pk": 1,
+        "fields": {
+            "username": "admin",
+            "role": "ADMIN",
+            "is_superuser": true,
+            "email": "admin@example.com"
+        }
+    },
+    {
+        "model": "api.User",
+        "pk": 2,
+        "fields": {
+            "username": "prof_smith",
+            "role": "TEACHER",
+            "email": "prof_smith@example.com"
+        }
+    }
+]
