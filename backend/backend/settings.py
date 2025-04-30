@@ -83,8 +83,6 @@ CORS_ALLOWED_ORIGINS = [
 
 load_dotenv()
 
-SECRET_KEY = os.getenv('SECRET_KEY')
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
