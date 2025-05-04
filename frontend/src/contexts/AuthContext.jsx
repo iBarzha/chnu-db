@@ -5,12 +5,17 @@ import api from '../api/auth';
 const AuthContext = createContext();
 
 // Helper function to securely store token with expiration
-const securelyStoreToken = (token) => {
+const securelyStoreToken = (token, refreshToken) => {
     if (!token) return;
 
     // Store in sessionStorage instead of localStorage for better security
     // (token is lost when browser is closed)
     sessionStorage.setItem('token', token);
+
+    // Store refresh token if provided
+    if (refreshToken) {
+        sessionStorage.setItem('refreshToken', refreshToken);
+    }
 
     // Set token expiration (e.g., 1 hour from now)
     const expiresAt = new Date().getTime() + 60 * 60 * 1000;
@@ -69,7 +74,7 @@ export function AuthProvider({ children }) {
     const login = async (username, password) => {
         try {
             const { data } = await api.post('/api/auth/login/', { username, password });
-            securelyStoreToken(data.access);
+            securelyStoreToken(data.access, data.refresh);
             setUser(data.user);
             setIsAuthenticated(true);
             navigate('/dashboard');
@@ -82,6 +87,7 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refreshToken');
         sessionStorage.removeItem('tokenExpiry');
         setUser(null);
         setIsAuthenticated(false);
@@ -95,7 +101,8 @@ export function AuthProvider({ children }) {
             if (!refreshToken) throw new Error('No refresh token available');
 
             const { data } = await api.post('/api/auth/token/refresh/', { refresh: refreshToken });
-            securelyStoreToken(data.access);
+            // Keep the existing refresh token when storing the new access token
+            securelyStoreToken(data.access, refreshToken);
             return true;
         } catch (error) {
             console.error('Token refresh error:', error);

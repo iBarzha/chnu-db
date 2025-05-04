@@ -1,21 +1,28 @@
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Divider, Typography } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   School as StudentIcon,
   Person as TeacherIcon,
   AdminPanelSettings as AdminIcon,
-  Assignment as TasksIcon
+  Assignment as TasksIcon,
+  Dashboard as DashboardIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 
 export default function Sidebar() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Function to handle external links
+  const handleExternalLink = (url) => {
+    window.open(url, '_blank');
+  };
+
   // Define menu items based on user role
   const menuItems = [
     // Common items for all users
-    { text: 'Дашборд', icon: <StudentIcon />, path: '/dashboard' },
+    { text: 'Дашборд', icon: <DashboardIcon />, path: '/dashboard' },
 
     // Role-specific items
     ...(user?.role === 'STUDENT' ? [
@@ -31,6 +38,11 @@ export default function Sidebar() {
       { text: 'Управление пользователями', icon: <AdminIcon />, path: '/admin/users' }
     ] : [])
   ];
+
+  // Admin-specific external links
+  const adminExternalLinks = user?.role === 'ADMIN' ? [
+    { text: 'Панель администратора', icon: <SettingsIcon />, url: 'http://localhost:8000/admin/' }
+  ] : [];
 
   return (
     <Drawer
@@ -53,6 +65,30 @@ export default function Sidebar() {
           </ListItemButton>
         ))}
       </List>
+
+      {adminExternalLinks.length > 0 && (
+        <>
+          <Divider sx={{ my: 1 }} />
+          <Typography
+            variant="subtitle2"
+            color="text.secondary"
+            sx={{ px: 2, py: 1 }}
+          >
+            Администрирование
+          </Typography>
+          <List>
+            {adminExternalLinks.map((item) => (
+              <ListItemButton
+                key={item.text}
+                onClick={() => handleExternalLink(item.url)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            ))}
+          </List>
+        </>
+      )}
     </Drawer>
   );
 }

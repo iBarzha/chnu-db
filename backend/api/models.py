@@ -17,6 +17,12 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Automatically set is_staff=True for users with ADMIN role
+        if self.role == self.Role.ADMIN:
+            self.is_staff = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
 
