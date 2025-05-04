@@ -1,21 +1,36 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Course, Assignment, Submission
-from django.contrib.admin.exceptions import NotRegistered
-
-# Try to unregister the User model if it's already registered
-try:
-    admin.site.unregister(User)
-except NotRegistered:
-    pass
+from django.http import HttpResponseRedirect
+from django.contrib import messages
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'role', 'is_staff')
+    list_display = ('username', 'email', 'role', 'first_name', 'last_name', 'is_staff', 'is_active')
+    list_filter = ('role', 'is_staff', 'is_active')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('username',)
+    actions = ['make_admin', 'make_teacher', 'make_student']
+
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'role', 'profile_picture')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
     )
+
+    def make_admin(self, request, queryset):
+        updated = queryset.update(role=User.Role.ADMIN, is_staff=True)
+        self.message_user(request, f'{updated} users were successfully updated to Admin role.')
+    make_admin.short_description = "Set selected users as Administrators"
+
+    def make_teacher(self, request, queryset):
+        updated = queryset.update(role=User.Role.TEACHER)
+        self.message_user(request, f'{updated} users were successfully updated to Teacher role.')
+    make_teacher.short_description = "Set selected users as Teachers"
+
+    def make_student(self, request, queryset):
+        updated = queryset.update(role=User.Role.STUDENT)
+        self.message_user(request, f'{updated} users were successfully updated to Student role.')
+    make_student.short_description = "Set selected users as Students"
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
