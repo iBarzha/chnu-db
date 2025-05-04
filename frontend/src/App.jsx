@@ -1,21 +1,43 @@
-// App.jsx
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Home from './pages/Home';
-import Layout from './components/Layout/Layout';
+import { CircularProgress, Box } from '@mui/material';
 
-// Защищённый роут
+// Lazy-loaded components for better performance
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Home = lazy(() => import('./pages/Home'));
+const Layout = lazy(() => import('./components/Layout/Layout'));
+
+// Loading component for suspense fallback
+const LoadingFallback = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <CircularProgress />
+  </Box>
+);
+
+// Protected route - only for authenticated users
 const ProtectedRoute = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Show loading indicator while checking authentication
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// Гостевой роут (только для неавторизованных)
+// Guest route - only for non-authenticated users
 const GuestRoute = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Show loading indicator while checking authentication
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
   return !user ? <Outlet /> : <Navigate to="/dashboard" replace />;
 };
 
@@ -23,27 +45,29 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Публичные роуты */}
-          <Route path="/" element={<Home />} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Home />} />
 
-          {/* Гостевые роуты */}
-          <Route element={<GuestRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Route>
-
-          {/* Защищённые роуты */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              {/* Другие защищённые роуты добавляем здесь */}
+            {/* Guest routes */}
+            <Route element={<GuestRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             </Route>
-          </Route>
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Add other protected routes here */}
+              </Route>
+            </Route>
+
+            {/* 404 - Not Found */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
