@@ -44,8 +44,8 @@ class Assignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     title = models.CharField(max_length=200)
     description = models.TextField()
-    schema_script = models.TextField(help_text="SQL для инициализации БД задания")
-    solution_hash = models.CharField(max_length=64, help_text="SHA-256 хэш эталонного результата")
+    schema_script = models.TextField(help_text="SQL for initializing the assignment database")
+    solution_hash = models.CharField(max_length=64, help_text="SHA-256 hash of the reference result")
     created_at = models.DateTimeField(auto_now_add=True)
     is_published = models.BooleanField(default=False)
 
@@ -58,10 +58,10 @@ class Submission(models.Model):
         related_name='submissions'
     )
     query = models.TextField()
-    result_json = models.JSONField(null=True)  # Сырой результат запроса
+    result_json = models.JSONField(null=True)  # Raw query result
     is_correct = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    execution_time = models.FloatField(null=True)  # Время выполнения в секундах
+    execution_time = models.FloatField(null=True)  # Execution time in seconds
 
     class Meta:
         ordering = ['-submitted_at']
