@@ -1,0 +1,63 @@
+{
+  "common": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "password": "Password",
+    "username": "Username",
+    "email": "Email",
+    "role": "Role",
+    "or": "or",
+    "dashboard": "Dashboard",
+    "student": "Student",
+    "teacher": "Teacher",
+    "admin": "Administrator",
+    "user": "User"
+  },
+  "navbar": {
+    "appName": "SQL Classroom"
+  },
+  "home": {
+    "subtitle": "Platform for learning to work with databases",
+    "goToDashboard": "Go to dashboard"
+  },
+  "login": {
+    "title": "Login to the system",
+    "registrationSuccess": "Registration successful! Now log in",
+    "usernameRequired": "Username is required",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Password must contain at least 6 characters",
+    "invalidCredentials": "Invalid credentials. Check username and password",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Register"
+  },
+  "register": {
+    "title": "Registration",
+    "error": "Registration error",
+    "alreadyHaveAccount": "Already have an account?",
+    "loginLink": "Login"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "yourRole": "Your role:",
+    "recentActivities": "Recent activities",
+    "activitiesInfo": "Information about recent activities will be displayed here.",
+    "notAuthorized": "User not authorized"
+  },
+  "sidebar": {
+    "myTasks": "My tasks",
+    "createCourse": "Create course",
+    "gradeWork": "Grade work",
+    "userManagement": "User management",
+    "adminPanel": "Admin panel",
+    "administration": "Administration"
+  },
+  "layout": {
+    "appBarSpacing": "Spacing under AppBar",
+    "pageContent": "Page content"
+  }
+}

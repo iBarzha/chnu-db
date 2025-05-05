@@ -1,0 +1,63 @@
+{
+  "common": {
+    "login": "Вхід",
+    "logout": "Вийти",
+    "register": "Реєстрація",
+    "password": "Пароль",
+    "username": "Логін",
+    "email": "Email",
+    "role": "Роль",
+    "or": "або",
+    "dashboard": "Дашборд",
+    "student": "Студент",
+    "teacher": "Викладач",
+    "admin": "Адміністратор",
+    "user": "Користувач"
+  },
+  "navbar": {
+    "appName": "SQL Classroom"
+  },
+  "home": {
+    "subtitle": "Платформа для навчання роботі з базами даних",
+    "goToDashboard": "Перейти до кабінету"
+  },
+  "login": {
+    "title": "Вхід до системи",
+    "registrationSuccess": "Реєстрація успішна! Тепер увійдіть до системи",
+    "usernameRequired": "Логін обов'язковий",
+    "passwordRequired": "Пароль обов'язковий",
+    "passwordMinLength": "Пароль повинен містити щонайменше 6 символів",
+    "invalidCredentials": "Невірні облікові дані. Перевірте логін і пароль",
+    "noAccount": "Немає облікового запису?",
+    "registerLink": "Зареєструйтесь"
+  },
+  "register": {
+    "title": "Реєстрація",
+    "error": "Помилка реєстрації",
+    "alreadyHaveAccount": "Вже є обліковий запис?",
+    "loginLink": "Увійти"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Доброго ранку",
+      "afternoon": "Добрий день",
+      "evening": "Добрий вечір"
+    },
+    "yourRole": "Ваша роль:",
+    "recentActivities": "Останні активності",
+    "activitiesInfo": "Тут буде відображатися інформація про останні активності.",
+    "notAuthorized": "Користувач не авторизований"
+  },
+  "sidebar": {
+    "myTasks": "Мої завдання",
+    "createCourse": "Створити курс",
+    "gradeWork": "Перевірка робіт",
+    "userManagement": "Управління користувачами",
+    "adminPanel": "Панель адміністратора",
+    "administration": "Адміністрування"
+  },
+  "layout": {
+    "appBarSpacing": "Відступ під AppBar",
+    "pageContent": "Контент сторінок"
+  }
+}

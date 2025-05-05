@@ -1,6 +1,7 @@
 import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Divider, Typography } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   School as StudentIcon,
   Person as TeacherIcon,
@@ -13,6 +14,7 @@ import {
 export default function Sidebar() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Function to handle external links
   const handleExternalLink = (url) => {
@@ -22,26 +24,26 @@ export default function Sidebar() {
   // Define menu items based on user role
   const menuItems = [
     // Common items for all users
-    { text: 'Дашборд', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: t('common.dashboard'), icon: <DashboardIcon />, path: '/dashboard' },
 
     // Role-specific items
     ...(user?.role === 'STUDENT' ? [
-      { text: 'Мои задания', icon: <StudentIcon />, path: '/tasks' }
+      { text: t('sidebar.myTasks'), icon: <StudentIcon />, path: '/tasks' }
     ] : []),
 
     ...(user?.role === 'TEACHER' ? [
-      { text: 'Создать курс', icon: <TeacherIcon />, path: '/create-course' },
-      { text: 'Проверка работ', icon: <TasksIcon />, path: '/grade' }
+      { text: t('sidebar.createCourse'), icon: <TeacherIcon />, path: '/create-course' },
+      { text: t('sidebar.gradeWork'), icon: <TasksIcon />, path: '/grade' }
     ] : []),
 
     ...(user?.role === 'ADMIN' ? [
-      { text: 'Управление пользователями', icon: <AdminIcon />, path: '/admin/users' }
+      { text: t('sidebar.userManagement'), icon: <AdminIcon />, path: '/admin/users' }
     ] : [])
   ];
 
   // Admin-specific external links
   const adminExternalLinks = user?.role === 'ADMIN' ? [
-    { text: 'Панель администратора', icon: <SettingsIcon />, url: 'http://localhost:8000/admin/' }
+    { text: t('sidebar.adminPanel'), icon: <SettingsIcon />, url: 'http://localhost:8000/admin/' }
   ] : [];
 
   return (
@@ -53,7 +55,7 @@ export default function Sidebar() {
         [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box' },
       }}
     >
-      <Toolbar /> {/* Spacing under AppBar */}
+      <Toolbar /> {/* {t('layout.appBarSpacing')} */}
       <List>
         {menuItems.map((item) => (
           <ListItemButton
@@ -74,7 +76,7 @@ export default function Sidebar() {
             color="text.secondary"
             sx={{ px: 2, py: 1 }}
           >
-            Администрирование
+            {t('sidebar.administration')}
           </Typography>
           <List>
             {adminExternalLinks.map((item) => (

@@ -1,22 +1,24 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Typography, Button, Container, Box, Paper, Grid } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
     const [greeting, setGreeting] = useState('');
+    const { t } = useTranslation();
 
     // Get role display name
     const getRoleDisplay = (role) => {
         switch(role) {
             case 'ADMIN':
-                return 'Администратор';
+                return t('common.admin');
             case 'TEACHER':
-                return 'Преподаватель';
+                return t('common.teacher');
             case 'STUDENT':
-                return 'Студент';
+                return t('common.student');
             default:
-                return 'Пользователь';
+                return t('common.user');
         }
     };
 
@@ -24,19 +26,19 @@ export default function Dashboard() {
     useEffect(() => {
         const hour = new Date().getHours();
         if (hour < 12) {
-            setGreeting('Доброе утро');
+            setGreeting(t('dashboard.greeting.morning'));
         } else if (hour < 18) {
-            setGreeting('Добрый день');
+            setGreeting(t('dashboard.greeting.afternoon'));
         } else {
-            setGreeting('Добрый вечер');
+            setGreeting(t('dashboard.greeting.evening'));
         }
-    }, []);
+    }, [t]);
 
     if (!user) {
         return (
             <Container>
                 <Typography variant="h5" color="error">
-                    Пользователь не авторизован
+                    {t('dashboard.notAuthorized')}
                 </Typography>
             </Container>
         );
@@ -49,7 +51,7 @@ export default function Dashboard() {
                     {greeting}, {user.username}!
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                    Ваша роль: <strong>{getRoleDisplay(user.role)}</strong>
+                    {t('dashboard.yourRole')} <strong>{getRoleDisplay(user.role)}</strong>
                 </Typography>
 
                 <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -57,10 +59,10 @@ export default function Dashboard() {
                     <Grid item xs={12}>
                         <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
                             <Typography variant="h6" gutterBottom>
-                                Последние активности
+                                {t('dashboard.recentActivities')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                Здесь будет отображаться информация о последних активностях.
+                                {t('dashboard.activitiesInfo')}
                             </Typography>
                         </Box>
                     </Grid>
@@ -72,7 +74,7 @@ export default function Dashboard() {
                         color="error"
                         onClick={logout}
                     >
-                        Выйти
+                        {t('common.logout')}
                     </Button>
                 </Box>
             </Paper>

@@ -5,6 +5,7 @@ import {
   FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import api from '../api/auth';
+import { useTranslation } from 'react-i18next';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -15,6 +16,7 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,14 +24,14 @@ export default function Register() {
       await api.post('/api/auth/register/', form);
       navigate('/login?registered=true');
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка регистрации');
+      setError(err.response?.data?.message || t('register.error'));
     }
   };
 
   return (
     <Container maxWidth="xs">
       <Box sx={{ mt: 8, textAlign: 'center' }}>
-        <Typography variant="h4">Регистрация</Typography>
+        <Typography variant="h4">{t('register.title')}</Typography>
 
         {error && (
           <Typography color="error" sx={{ mt: 2 }}>
@@ -39,7 +41,7 @@ export default function Register() {
 
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
           <TextField
-            label="Логин"
+            label={t('common.username')}
             fullWidth
             margin="normal"
             value={form.username}
@@ -48,7 +50,7 @@ export default function Register() {
           />
 
           <TextField
-            label="Email"
+            label={t('common.email')}
             type="email"
             fullWidth
             margin="normal"
@@ -58,7 +60,7 @@ export default function Register() {
           />
 
           <TextField
-            label="Пароль"
+            label={t('common.password')}
             type="password"
             fullWidth
             margin="normal"
@@ -68,14 +70,14 @@ export default function Register() {
           />
 
           <FormControl fullWidth margin="normal">
-            <InputLabel>Роль</InputLabel>
+            <InputLabel>{t('common.role')}</InputLabel>
             <Select
               value={form.role}
-              label="Роль"
+              label={t('common.role')}
               onChange={(e) => setForm({...form, role: e.target.value})}
             >
-              <MenuItem value="STUDENT">Студент</MenuItem>
-              <MenuItem value="TEACHER">Преподаватель</MenuItem>
+              <MenuItem value="STUDENT">{t('common.student')}</MenuItem>
+              <MenuItem value="TEACHER">{t('common.teacher')}</MenuItem>
             </Select>
           </FormControl>
 
@@ -85,11 +87,11 @@ export default function Register() {
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
           >
-            Зарегистрироваться
+            {t('common.register')}
           </Button>
 
           <Typography>
-            Уже есть аккаунт? <Link to="/login">Войти</Link>
+            {t('register.alreadyHaveAccount')} <Link to="/login">{t('register.loginLink')}</Link>
           </Typography>
         </Box>
       </Box>

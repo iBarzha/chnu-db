@@ -2,19 +2,21 @@
 import { Container, Box, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <Container maxWidth="md">
       <Box sx={{ textAlign: 'center', mt: 8 }}>
         <Typography variant="h2" gutterBottom>
-          SQL Classroom
+          {t('navbar.appName')}
         </Typography>
         <Typography variant="h5" sx={{ mb: 4 }}>
-          Платформа для обучения работе с базами данных
+          {t('home.subtitle')}
         </Typography>
 
         {user ? (
@@ -23,7 +25,7 @@ export default function Home() {
             size="large"
             onClick={() => navigate('/dashboard')}
           >
-            Перейти в кабинет
+            {t('home.goToDashboard')}
           </Button>
         ) : (
           <>
@@ -33,14 +35,14 @@ export default function Home() {
               sx={{ mr: 2 }}
               onClick={() => navigate('/login')}
             >
-              Вход
+              {t('common.login')}
             </Button>
             <Button
               variant="outlined"
               size="large"
               onClick={() => navigate('/register')}
             >
-              Регистрация
+              {t('common.register')}
             </Button>
           </>
         )}

@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   // Form state
@@ -30,6 +31,7 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -42,12 +44,12 @@ export default function Login() {
   useEffect(() => {
     if (location.search.includes('registered=true')) {
       setMessage({ 
-        text: 'Регистрация успешна! Теперь войдите в систему', 
+        text: t('login.registrationSuccess'), 
         type: 'success' 
       });
       setShowSnackbar(true);
     }
-  }, [location]);
+  }, [location, t]);
 
   // Validate form fields
   const validateForm = () => {
@@ -55,15 +57,15 @@ export default function Login() {
     const errors = { username: '', password: '' };
 
     if (!form.username.trim()) {
-      errors.username = 'Логин обязателен';
+      errors.username = t('login.usernameRequired');
       valid = false;
     }
 
     if (!form.password) {
-      errors.password = 'Пароль обязателен';
+      errors.password = t('login.passwordRequired');
       valid = false;
     } else if (form.password.length < 6) {
-      errors.password = 'Пароль должен содержать минимум 6 символов';
+      errors.password = t('login.passwordMinLength');
       valid = false;
     }
 
@@ -90,7 +92,7 @@ export default function Login() {
       // Redirect happens via the isAuthenticated effect
     } catch (err) {
       const errorMessage = err.response?.data?.detail || 
-                          'Неверные учетные данные. Проверьте логин и пароль';
+                          t('login.invalidCredentials');
 
       setMessage({ text: errorMessage, type: 'error' });
     } finally {
@@ -123,7 +125,7 @@ export default function Login() {
           alignItems: 'center',
         }}>
           <Typography component="h1" variant="h4" sx={{ mb: 3 }}>
-            Вход в систему
+            {t('login.title')}
           </Typography>
 
           {message.text && (
@@ -148,7 +150,7 @@ export default function Login() {
             }}
           >
             <TextField
-              label="Логин"
+              label={t('common.username')}
               name="username"
               variant="outlined"
               fullWidth
@@ -162,7 +164,7 @@ export default function Login() {
             />
 
             <TextField
-              label="Пароль"
+              label={t('common.password')}
               name="password"
               type={showPassword ? 'text' : 'password'}
               variant="outlined"
@@ -198,19 +200,19 @@ export default function Login() {
               {isLoading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                'Войти'
+                t('common.login')
               )}
             </Button>
 
-            <Divider sx={{ my: 2 }}>или</Divider>
+            <Divider sx={{ my: 2 }}>{t('common.or')}</Divider>
 
             <Typography variant="body2" sx={{ textAlign: 'center' }}>
-              Нет аккаунта?{' '}
+              {t('login.noAccount')}{' '}
               <Link
                 to="/register"
                 style={{ textDecoration: 'none' }}
               >
-                Зарегистрируйтесь
+                {t('login.registerLink')}
               </Link>
             </Typography>
           </Box>
