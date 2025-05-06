@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import User
+from .models import User, Course
 
 User = get_user_model()
 
@@ -58,3 +58,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
 
         return data
+
+class CourseSerializer(serializers.ModelSerializer):
+    teacher = UserSerializer(read_only=True)
+    assignments_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'description', 'teacher', 'created_at', 'cover_image', 'assignments_count']
+        read_only_fields = ['id', 'teacher', 'created_at', 'assignments_count']
+
+    def create(self, validated_data):
+        # Set the current user as the teacher
+        validated_data['teacher'] = self.context['request'].user
+        return super().create(validated_data)

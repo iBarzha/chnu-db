@@ -39,7 +39,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'is_published')
+    list_display = ('title', 'course', 'created_at')
     raw_id_fields = ('course',)
 
 @admin.register(Submission)
