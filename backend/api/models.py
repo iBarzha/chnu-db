@@ -32,28 +32,34 @@ class User(AbstractUser):
 class Course(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
     teacher = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        limit_choices_to={'role': User.Role.TEACHER},
-        related_name='taught_courses'
+        related_name='created_courses',
+        limit_choices_to={'role': User.Role.TEACHER}
     )
     students = models.ManyToManyField(
         User,
         related_name='enrolled_courses',
-        blank=True,
-        limit_choices_to={'role': User.Role.STUDENT}
+        blank=True
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    cover_image = models.ImageField(upload_to='course_covers/', null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
 class Assignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     title = models.CharField(max_length=200)
     description = models.TextField()
-    schema_script = models.TextField(help_text="SQL for initializing the assignment database")
-    solution_hash = models.CharField(max_length=64, help_text="SHA-256 hash of the reference result")
+    due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    is_published = models.BooleanField(default=False)
+    schema_script = models.TextField(help_text="SQL to initialize the database")
+    solution_hash = models.CharField(max_length=64, help_text="Hesh of the reference solution")
+
+    class Meta:
+        ordering = ['-created_at']
 
 class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
