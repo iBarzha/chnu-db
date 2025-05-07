@@ -8,7 +8,8 @@ import {
   AdminPanelSettings as AdminIcon,
   Assignment as TasksIcon,
   Dashboard as DashboardIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Book as CoursesIcon
 } from '@mui/icons-material';
 
 export default function Sidebar() {
@@ -25,6 +26,7 @@ export default function Sidebar() {
   const menuItems = [
     // Common items for all users
     { text: t('common.dashboard'), icon: <DashboardIcon />, path: '/dashboard' },
+    { text: t('sidebar.courses'), icon: <CoursesIcon />, path: '/courses' },
 
     // Role-specific items
     ...(user?.role === 'STUDENT' ? [

@@ -54,7 +54,40 @@
     "gradeWork": "Grade work",
     "userManagement": "User management",
     "adminPanel": "Admin panel",
-    "administration": "Administration"
+    "administration": "Administration",
+    "courses": "Courses",
+    "myCourses": "My Courses"
+  },
+  "course": {
+    "courses": "Courses",
+    "myCourses": "My Courses",
+    "addTask": "Add Task",
+    "tasks": "Tasks",
+    "materials": "Materials",
+    "members": "Members",
+    "noTasks": "No tasks available for this course",
+    "noMaterials": "No materials available for this course",
+    "open": "Open",
+    "edit": "Edit",
+    "delete": "Delete",
+    "editCourse": "Edit Course",
+    "deleteCourse": "Delete Course",
+    "confirmDelete": "Are you sure you want to delete this course?",
+    "courseDeleted": "Course deleted successfully",
+    "courseUpdated": "Course updated successfully",
+    "cancel": "Cancel",
+    "save": "Save",
+    "createTask": "Create Task"
+  },
+  "task": {
+    "taskDetails": "Task Details",
+    "dueDate": "Due Date",
+    "description": "Description",
+    "backToCourse": "Back to Course",
+    "backToCourses": "Back to Courses",
+    "taskNotFound": "Task not found",
+    "loadingError": "Failed to load task details",
+    "view": "View"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
