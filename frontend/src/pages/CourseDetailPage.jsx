@@ -1,10 +1,10 @@
 import { 
   Container, Typography, Button, Box, Tab, Tabs, 
   Dialog, DialogTitle, DialogContent, DialogActions, 
-  TextField, FormControl, FormHelperText
+  TextField,
 } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -20,7 +20,6 @@ export default function CourseDetailPage() {
   const [openTaskDialog, setOpenTaskDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {

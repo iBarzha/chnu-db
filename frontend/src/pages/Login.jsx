@@ -223,8 +223,15 @@ export default function Login() {
         open={showSnackbar}
         autoHideDuration={6000}
         onClose={() => setShowSnackbar(false)}
-        message={message.text}
-      />
+      >
+        <Alert 
+          onClose={() => setShowSnackbar(false)} 
+          severity={message.type || "info"}
+          sx={{ width: '100%' }}
+        >
+          {message.text}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

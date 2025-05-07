@@ -9,10 +9,13 @@ import {
   DialogContent, 
   DialogActions, 
   TextField,
-  DialogContentText
+  DialogContentText,
+  Snackbar,
+  Alert
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import CourseCard from '../components/Course/CourseCard';
 import api from '../api/auth';
 import { useFormik } from 'formik';
@@ -25,17 +28,30 @@ export default function CoursesPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openTaskDialog, setOpenTaskDialog] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
-  const fetchCourses = () => {
+  const showNotification = (message, severity = 'info') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const fetchCourses = useCallback(() => {
     api.get('/api/courses/')
       .then(res => setCourses(res.data))
-      .catch(err => console.error(err));
-  };
+      .catch(err => {
+        console.error(err);
+        showNotification(t('course.fetchError'), 'error');
+      });
+  }, [t]);
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [fetchCourses]);
 
   const handleEditCourse = (course) => {
     setSelectedCourse(course);
@@ -57,9 +73,10 @@ export default function CoursesPage() {
       await api.delete(`/api/courses/${selectedCourse.id}/`);
       fetchCourses();
       setOpenDeleteDialog(false);
-      alert(t('course.courseDeleted'));
+      showNotification(t('course.courseDeleted'), 'success');
     } catch (error) {
       console.error('Error deleting course:', error);
+      showNotification(t('course.deleteError'), 'error');
     }
   };
 
@@ -78,9 +95,10 @@ export default function CoursesPage() {
         await api.put(`/api/courses/${selectedCourse.id}/`, values);
         fetchCourses();
         setOpenEditDialog(false);
-        alert(t('course.courseUpdated'));
+        showNotification(t('course.courseUpdated'), 'success');
       } catch (error) {
         console.error('Error updating course:', error);
+        showNotification(t('course.updateError'), 'error');
       }
     },
   });
@@ -101,9 +119,10 @@ export default function CoursesPage() {
         await api.post(`/api/courses/${selectedCourse.id}/assignments/`, values);
         setOpenTaskDialog(false);
         taskFormik.resetForm();
-        alert('Task created successfully');
+        showNotification(t('course.taskCreated'), 'success');
       } catch (error) {
         console.error('Error creating task:', error);
+        showNotification(t('course.taskError'), 'error');
       }
     }
   });
@@ -117,7 +136,7 @@ export default function CoursesPage() {
         <Button 
           variant="contained" 
           startIcon={<AddIcon />}
-          onClick={() => window.location.href = '/create-course'}
+          onClick={() => navigate('/create-course')}
         >
           {t('sidebar.createCourse')}
         </Button>
@@ -235,6 +254,21 @@ export default function CoursesPage() {
           </DialogActions>
         </form>
       </Dialog>
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
