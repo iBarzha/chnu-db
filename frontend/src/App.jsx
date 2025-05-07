@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
 import CreateCoursePage from "./pages/CreateCoursePage";
 import CoursesPage from "./pages/CoursesPage";
+import TaskDetailPage from "./pages/TaskDetailPage";
+import CourseDetailPage from "./pages/CourseDetailPage";
 
 // Lazy-loaded components for better performance
 const Login = lazy(() => import('./pages/Login'));
@@ -43,10 +45,6 @@ const GuestRoute = () => {
   return !user ? <Outlet /> : <Navigate to="/dashboard" replace />;
 };
 
-function CourseDetailPage() {
-  return null;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -69,6 +67,7 @@ export default function App() {
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/courses/:id" element={<CourseDetailPage />} />
                 <Route path="/create-course" element={<CreateCoursePage />} />
+                <Route path="/assignments/:id" element={<TaskDetailPage />} />
               </Route>
             </Route>
 
