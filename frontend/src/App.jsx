@@ -6,6 +6,7 @@ import CreateCoursePage from "./pages/CreateCoursePage";
 import CoursesPage from "./pages/CoursesPage";
 import TaskDetailPage from "./pages/TaskDetailPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
+import TaskCreatePage from "./pages/TaskCreatePage";
 
 // Lazy-loaded components for better performance
 const Login = lazy(() => import('./pages/Login'));
@@ -67,6 +68,7 @@ export default function App() {
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/courses/:id" element={<CourseDetailPage />} />
                 <Route path="/create-course" element={<CreateCoursePage />} />
+                <Route path="/courses/:courseId/create-task" element={<TaskCreatePage />} />
                 <Route path="/assignments/:id" element={<TaskDetailPage />} />
               </Route>
             </Route>
