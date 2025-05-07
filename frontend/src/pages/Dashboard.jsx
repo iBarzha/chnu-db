@@ -1,7 +1,8 @@
 import { useAuth } from '../contexts/AuthContext';
-import { Typography, Button, Container, Box, Paper, Grid } from '@mui/material';
+import { Typography, Button, Container, Box, Paper, Grid, Divider } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import SQLEditor from '../components/SQL/SQLEditor';
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
@@ -67,6 +68,22 @@ export default function Dashboard() {
                         </Box>
                     </Grid>
                 </Grid>
+
+                <Box sx={{ mt: 4, mb: 4 }}>
+                    <Paper sx={{ p: 3, mb: 3 }}>
+                        <Typography variant="h5" gutterBottom>
+                            {t('sql.welcome')}
+                        </Typography>
+                        <Typography variant="body1" paragraph>
+                            {t('sql.introText')}
+                        </Typography>
+                        <Typography variant="body1">
+                            {t('sql.featuresText')}
+                        </Typography>
+                    </Paper>
+
+                    <SQLEditor />
+                </Box>
 
                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
                     <Button

@@ -12,7 +12,8 @@
     "student": "Student",
     "teacher": "Teacher",
     "admin": "Administrator",
-    "user": "User"
+    "user": "User",
+    "submitting": "Submitting..."
   },
   "navbar": {
     "appName": "SQL Classroom"
@@ -87,10 +88,47 @@
     "backToCourses": "Back to Courses",
     "taskNotFound": "Task not found",
     "loadingError": "Failed to load task details",
-    "view": "View"
+    "view": "View",
+    "basicInfo": "Basic Information",
+    "theory": "Theory/Description",
+    "theoryLabel": "Theory or Description of the Task",
+    "queries": "Queries",
+    "addQuery": "Add Query",
+    "query": "Query",
+    "textChangeBlocked": "Text cannot be changed",
+    "individualLinesChangeable": "Individual lines can be changed",
+    "writeFullQuery": "The entire query can be written in full",
+    "run": "Run",
+    "check": "Check",
+    "results": "Results"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
     "pageContent": "Page content"
+  },
+  "sql": {
+    "editor": "SQL Editor",
+    "enterQuery": "Enter your SQL query here...",
+    "runQuery": "Run Query",
+    "clear": "Clear",
+    "refreshSchema": "Refresh Schema",
+    "sampleQueries": "Sample Queries:",
+    "results": "Results",
+    "schema": "Schema",
+    "column": "Column",
+    "type": "Type",
+    "executeToSeeResults": "Execute a query to see results",
+    "noSchemaAvailable": "No schema information available",
+    "rowsReturned": "{{count}} rows returned",
+    "rowsAffected": "{{count}} rows affected",
+    "queryExecutedSuccessfully": "Query executed successfully. Affected rows: {{count}}",
+    "enterSqlQuery": "Please enter a SQL query",
+    "failedToExecute": "Failed to execute query",
+    "failedToFetchSchema": "Failed to fetch schema",
+    "welcome": "Welcome to SQL Classroom",
+    "introText": "This is an interactive SQL environment where you can practice SQL queries and manage database schemas. Each user gets their own isolated temporary database to work with, ensuring your changes won't affect the main system. Use the SQL editor below to write and execute SQL commands, view query results, and explore the database schema.",
+    "featuresText": "You can try various SQL operations including SELECT, INSERT, UPDATE, DELETE, and more. The sample queries provide examples to help you get started.",
+    "loginRequired": "Log in to access the SQL editor",
+    "loginRequiredText": "The SQL editor allows you to practice SQL queries and manage database schemas. Please log in or register to access this feature."
   }
 }

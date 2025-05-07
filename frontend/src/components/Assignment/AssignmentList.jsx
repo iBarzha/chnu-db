@@ -13,7 +13,7 @@ export default function AssignmentList({ courseId }) {
   useEffect(() => {
     if (courseId) {
       setLoading(true);
-      api.get(`/api/courses/${courseId}/assignments/`)
+      api.get(`/api/courses/${courseId}/get_assignments/`)
         .then(res => {
           setAssignments(res.data);
           setLoading(false);

@@ -27,6 +27,7 @@ export default function CoursesPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openTaskDialog, setOpenTaskDialog] = useState(false);
+  const [openCreateCourseDialog, setOpenCreateCourseDialog] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const { t } = useTranslation();
@@ -66,6 +67,10 @@ export default function CoursesPage() {
   const handleCreateTask = (course) => {
     setSelectedCourse(course);
     setOpenTaskDialog(true);
+  };
+
+  const handleOpenCreateCourseDialog = () => {
+    setOpenCreateCourseDialog(true);
   };
 
   const confirmDeleteCourse = async () => {
@@ -127,6 +132,29 @@ export default function CoursesPage() {
     }
   });
 
+  const createCourseFormik = useFormik({
+    initialValues: {
+      title: '',
+      description: '',
+    },
+    validationSchema: Yup.object({
+      title: Yup.string().required('Title is required'),
+      description: Yup.string().required('Description is required'),
+    }),
+    onSubmit: async (values) => {
+      try {
+        await api.post('/api/courses/', values);
+        fetchCourses();
+        setOpenCreateCourseDialog(false);
+        createCourseFormik.resetForm();
+        showNotification(t('course.courseCreated') || 'Course created successfully', 'success');
+      } catch (error) {
+        console.error('Error creating course:', error);
+        showNotification(t('course.createError') || 'Failed to create course', 'error');
+      }
+    }
+  });
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -136,7 +164,7 @@ export default function CoursesPage() {
         <Button 
           variant="contained" 
           startIcon={<AddIcon />}
-          onClick={() => navigate('/create-course')}
+          onClick={handleOpenCreateCourseDialog}
         >
           {t('sidebar.createCourse')}
         </Button>
@@ -250,6 +278,41 @@ export default function CoursesPage() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenTaskDialog(false)}>{t('course.cancel')}</Button>
+            <Button type="submit" variant="contained" color="primary">{t('course.save')}</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Create Course Dialog */}
+      <Dialog open={openCreateCourseDialog} onClose={() => setOpenCreateCourseDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('sidebar.createCourse')}</DialogTitle>
+        <form onSubmit={createCourseFormik.handleSubmit}>
+          <DialogContent>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Title"
+              name="title"
+              value={createCourseFormik.values.title}
+              onChange={createCourseFormik.handleChange}
+              error={createCourseFormik.touched.title && Boolean(createCourseFormik.errors.title)}
+              helperText={createCourseFormik.touched.title && createCourseFormik.errors.title}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Description"
+              name="description"
+              multiline
+              rows={4}
+              value={createCourseFormik.values.description}
+              onChange={createCourseFormik.handleChange}
+              error={createCourseFormik.touched.description && Boolean(createCourseFormik.errors.description)}
+              helperText={createCourseFormik.touched.description && createCourseFormik.errors.description}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenCreateCourseDialog(false)}>{t('course.cancel')}</Button>
             <Button type="submit" variant="contained" color="primary">{t('course.save')}</Button>
           </DialogActions>
         </form>

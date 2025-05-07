@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
-import CreateCoursePage from "./pages/CreateCoursePage";
 import CoursesPage from "./pages/CoursesPage";
 import TaskDetailPage from "./pages/TaskDetailPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
@@ -67,7 +66,6 @@ export default function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/courses/:id" element={<CourseDetailPage />} />
-                <Route path="/create-course" element={<CreateCoursePage />} />
                 <Route path="/courses/:courseId/create-task" element={<TaskCreatePage />} />
                 <Route path="/assignments/:id" element={<TaskDetailPage />} />
               </Route>
