@@ -228,3 +228,14 @@ def get_schema(request):
         except Exception as cleanup_error:
             # Log cleanup errors but don't fail the request
             print(f"Error cleaning up temporary schema: {cleanup_error}")
+
+
+class AssignmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing assignments.
+    """
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Assignment.objects.all()
