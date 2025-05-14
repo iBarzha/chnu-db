@@ -35,7 +35,9 @@ export default function Sidebar() {
 
     ...(user?.role === 'TEACHER' ? [
       { text: t('sidebar.gradeWork'), icon: <TasksIcon />, path: '/grade' },
-      { text: t('sidebar.uploadDatabase'), icon: <SettingsIcon />, path: '/upload-database' }
+      { text: t('sidebar.uploadDatabase'), icon: <SettingsIcon />, path: '/upload-database' },
+      { text: t('sidebar.myDatabases'), icon: <CoursesIcon />, path: '/my-databases' }
+
 
     ] : []),
 

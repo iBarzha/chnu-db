@@ -59,7 +59,8 @@
     "administration": "Administration",
     "courses": "Courses",
     "myCourses": "My Courses",
-    "uploadDatabase": "Upload DB"
+    "uploadDatabase": "Upload DB",
+    "myDatabases": "My Databases"
   },
   "course": {
     "courses": "Courses",
@@ -107,7 +108,11 @@
     "databaseName": "Database name",
     "chooseFile": "Choose file",
     "uploadSuccess": "Upload success",
-    "upload": "Upload"
+    "upload": "Upload",
+    "myDatabases": "My SQL Databases",
+    "noDatabases": "You haven't uploaded any databases yet.",
+    "uploadNewDatabase": "Upload New Database",
+    "deletedSuccessfully": "Database deleted successfully"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",

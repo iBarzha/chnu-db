@@ -59,7 +59,8 @@
     "administration": "Адміністрування",
     "courses": "Курси",
     "myCourses": "Мої курси",
-    "uploadDatabase": "Завантажити БД"
+    "uploadDatabase": "Завантажити БД",
+    "myDatabases": "Мої бази даних"
   },
   "course": {
     "courses": "Курси",
@@ -107,7 +108,11 @@
     "databaseName": "Назва бази данних",
     "chooseFile": "Виберіть файл",
     "uploadSuccess": "Завантаження успішне",
-    "upload": "Завантажити"
+    "upload": "Завантажити",
+    "myDatabases": "Мої бази даних",
+    "noDatabases": "Ви ще не завантажили жодної бази даних.",
+    "uploadNewDatabase": "Завантажте нову базу даних",
+    "deletedSuccessfully": "Базу даних успішно видалено"
   },
   "layout": {
     "appBarSpacing": "Відступ під AppBar",
