@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Container, Box, Typography, TextField, Button,
-  FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import api from '../api/auth';
 import { useTranslation } from 'react-i18next';
@@ -68,18 +67,6 @@ export default function Register() {
             onChange={(e) => setForm({...form, password: e.target.value})}
             required
           />
-
-          <FormControl fullWidth margin="normal">
-            <InputLabel>{t('common.role')}</InputLabel>
-            <Select
-              value={form.role}
-              label={t('common.role')}
-              onChange={(e) => setForm({...form, role: e.target.value})}
-            >
-              <MenuItem value="STUDENT">{t('common.student')}</MenuItem>
-              <MenuItem value="TEACHER">{t('common.teacher')}</MenuItem>
-            </Select>
-          </FormControl>
 
           <Button
             type="submit"

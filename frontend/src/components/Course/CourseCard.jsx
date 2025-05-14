@@ -1,9 +1,8 @@
 import { Card, CardMedia, CardContent, Typography, Button, Chip, Box, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-
-export default function CourseCard({ course, onEdit, onDelete, onCreateTask }) {
+export default function CourseCard({ course, onEdit, onDelete }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -53,15 +52,7 @@ export default function CourseCard({ course, onEdit, onDelete, onCreateTask }) {
             </IconButton>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={() => onCreateTask && onCreateTask(course)}
-          >
-            {t('course.addTask')}
-          </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             size="small"
             variant="contained"

@@ -86,17 +86,5 @@ api.interceptors.response.use(
     }
 );
 
-// Authentication specific functions
-export const authService = {
-    login: (username, password) => api.post('/api/auth/login/', { username, password }),
-    register: (userData) => api.post('/api/auth/register/', userData),
-    getProfile: () => api.get('/api/auth/profile/'),
-    refreshToken: (refresh) => api.post('/api/auth/token/refresh/', { refresh }),
-    logout: () => {
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('refreshToken');
-        sessionStorage.removeItem('tokenExpiry');
-    }
-};
 
 export default api;

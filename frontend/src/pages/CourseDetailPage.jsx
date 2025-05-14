@@ -14,7 +14,7 @@ export default function CourseDetailPage() {
   const [tab, setTab] = useState(0);
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey] = useState(0);
   const { t } = useTranslation();
 
   useEffect(() => {

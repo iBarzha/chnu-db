@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import CourseCard from '../components/Course/CourseCard';
 import api from '../api/auth';
 import { useFormik } from 'formik';
@@ -31,7 +30,6 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const showNotification = (message, severity = 'info') => {
     setNotification({ open: true, message, severity });
