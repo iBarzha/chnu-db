@@ -13,7 +13,8 @@
     "teacher": "Teacher",
     "admin": "Administrator",
     "user": "User",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "uploading": "Uploading..."
   },
   "navbar": {
     "appName": "SQL Classroom"
@@ -57,7 +58,8 @@
     "adminPanel": "Admin panel",
     "administration": "Administration",
     "courses": "Courses",
-    "myCourses": "My Courses"
+    "myCourses": "My Courses",
+    "uploadDatabase": "Upload DB"
   },
   "course": {
     "courses": "Courses",
@@ -100,7 +102,12 @@
     "writeFullQuery": "The entire query can be written in full",
     "run": "Run",
     "check": "Check",
-    "results": "Results"
+    "results": "Results",
+    "uploadDatabase": "Upload Database",
+    "databaseName": "Database name",
+    "chooseFile": "Choose file",
+    "uploadSuccess": "Upload success",
+    "upload": "Upload"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
@@ -131,4 +138,5 @@
     "loginRequired": "Log in to access the SQL editor",
     "loginRequiredText": "The SQL editor allows you to practice SQL queries and manage database schemas. Please log in or register to access this feature."
   }
+
 }

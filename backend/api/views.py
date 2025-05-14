@@ -1,14 +1,14 @@
-from rest_framework import generics, permissions, viewsets, status
+from rest_framework import generics, permissions, viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.parsers import MultiPartParser
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Manager
-from django.db import connection
-from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserSerializer, CourseSerializer, AssignmentSerializer
-from .models import Course, Assignment
-import time
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserSerializer, CourseSerializer, AssignmentSerializer, TeacherDatabaseSerializer
+from .models import Course, Assignment, TeacherDatabase
+
 
 # Type hints for Django models
 Course.objects: Manager
@@ -95,6 +95,21 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = AssignmentSerializer(assignments, many=True)
         return Response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override retrieve method to include assignments in the course details.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        # Include assignments in the response
+        assignments = Assignment.objects.filter(course=instance)
+        assignment_serializer = AssignmentSerializer(assignments, many=True)
+        data['assignments'] = assignment_serializer.data
+
+        return Response(data)
+
     @action(detail=True, methods=['post'])
     def assignments(self, request, pk=None):
         """
@@ -134,6 +149,32 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
+class TeacherDatabaseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet to allow teachers to upload SQL database dumps.
+    """
+    queryset = TeacherDatabase.objects.all()
+    serializer_class = TeacherDatabaseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        """
+        Teachers see only their own uploaded databases.
+        """
+        user = self.request.user
+        if user.role == User.Role.TEACHER:
+            return self.queryset.filter(teacher=user)
+        return TeacherDatabase.objects.none()
+
+    def perform_create(self, serializer):
+        """
+        Only teachers can upload SQL dumps.
+        """
+        user = self.request.user
+        if user.role != User.Role.TEACHER:
+            raise PermissionDenied("Only teachers can upload database dumps.")
+        serializer.save(teacher=user)
 
 class AssignmentViewSet(viewsets.ReadOnlyModelViewSet):
     """

@@ -118,3 +118,19 @@ class Submission(models.Model):
 
     class Meta:
         ordering = ['-submitted_at']
+
+class TeacherDatabase(models.Model):
+    """
+    Represents a SQL database dump uploaded by a teacher.
+    """
+    name = models.CharField(max_length=100)
+    teacher = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        limit_choices_to={'role': User.Role.TEACHER},
+        related_name='uploaded_databases'
+    )
+    sql_dump = models.FileField(upload_to='teacher_dumps/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.teacher.username})"

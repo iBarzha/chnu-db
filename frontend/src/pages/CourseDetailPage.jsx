@@ -1,7 +1,7 @@
 import { 
   Container, Typography, Button, Box, Tab, Tabs
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import AssignmentList from '../components/Assignment/AssignmentList';
@@ -13,16 +13,20 @@ export default function CourseDetailPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [course, setCourse] = useState(null);
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey] = useState(0);
   const { t } = useTranslation();
 
-  useEffect(() => {
+  const fetchCourse = useCallback(() => {
     if (id) {
       setLoading(true);
       api.get(`/api/courses/${id}/`)
         .then(res => {
           setCourse(res.data);
+          // Use assignments from the course details response if available
+          if (res.data.assignments) {
+            setAssignments(res.data.assignments);
+          }
           setLoading(false);
         })
         .catch(err => {
@@ -31,6 +35,10 @@ export default function CourseDetailPage() {
         });
     }
   }, [id]);
+
+  useEffect(() => {
+    fetchCourse();
+  }, [fetchCourse]);
 
   const handleOpenTaskDialog = () => {
     navigate(`/courses/${id}/create-task`);
@@ -62,7 +70,7 @@ export default function CourseDetailPage() {
         <Tab label={t('course.members')} />
       </Tabs>
 
-      {tab === 0 && <AssignmentList key={refreshKey} courseId={id} />}
+      {tab === 0 && <AssignmentList courseId={id} assignments={assignments} />}
       {tab === 1 && <CourseMaterials courseId={id} />}
       {tab === 2 && (
         <Box sx={{ p: 3, textAlign: 'center' }}>

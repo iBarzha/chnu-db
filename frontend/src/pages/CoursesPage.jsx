@@ -46,7 +46,7 @@ export default function CoursesPage() {
         console.error(err);
         showNotification(t('course.fetchError'), 'error');
       });
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     fetchCourses();

@@ -1,17 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { List, ListItem, ListItemText, Typography, Paper, Divider, Button, Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/auth';
 
-export default function AssignmentList({ courseId }) {
+export default function AssignmentList({ courseId, assignments: propAssignments }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchAssignments = useCallback(() => {
     if (courseId) {
+      // If assignments are provided as props, use them
+      if (propAssignments && propAssignments.length > 0) {
+        setAssignments(propAssignments);
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch assignments from the API
       setLoading(true);
       api.get(`/api/courses/${courseId}/get_assignments/`)
         .then(res => {
@@ -23,7 +31,11 @@ export default function AssignmentList({ courseId }) {
           setLoading(false);
         });
     }
-  }, [courseId]);
+  }, [courseId, propAssignments]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [fetchAssignments]);
 
   if (loading) {
     return <Typography>Loading...</Typography>;

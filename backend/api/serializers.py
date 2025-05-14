@@ -2,7 +2,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import Course, Assignment
+from .models import Course, Assignment, TeacherDatabase
+
 
 User = get_user_model()
 
@@ -107,3 +108,9 @@ class AssignmentSerializer(serializers.ModelSerializer):
         model = Assignment
         fields = ['id', 'course', 'title', 'description', 'due_date', 'created_at', 'schema_script', 'solution_hash']
         read_only_fields = ['id', 'created_at']
+
+class TeacherDatabaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeacherDatabase
+        fields = ['id', 'name', 'sql_dump', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']

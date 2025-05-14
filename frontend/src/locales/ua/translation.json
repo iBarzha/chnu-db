@@ -13,7 +13,8 @@
     "teacher": "Викладач",
     "admin": "Адміністратор",
     "user": "Користувач",
-    "submitting": "Відправлення..."
+    "submitting": "Відправлення...",
+    "uploading": "Завантаження..."
   },
   "navbar": {
     "appName": "SQL Classroom"
@@ -57,7 +58,8 @@
     "adminPanel": "Панель адміністратора",
     "administration": "Адміністрування",
     "courses": "Курси",
-    "myCourses": "Мої курси"
+    "myCourses": "Мої курси",
+    "uploadDatabase": "Завантажити БД"
   },
   "course": {
     "courses": "Курси",
@@ -100,7 +102,12 @@
     "writeFullQuery": "Весь запит можна написати повністю",
     "run": "Запустити",
     "check": "Перевірити",
-    "results": "Результати"
+    "results": "Результати",
+    "uploadDatabase": "Завантажити базу данних",
+    "databaseName": "Назва бази данних",
+    "chooseFile": "Виберіть файл",
+    "uploadSuccess": "Завантаження успішне",
+    "upload": "Завантажити"
   },
   "layout": {
     "appBarSpacing": "Відступ під AppBar",
