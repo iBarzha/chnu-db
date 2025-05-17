@@ -36,16 +36,17 @@ class LoginView(TokenObtainPairView):
     """
     serializer_class = CustomTokenObtainPairSerializer
 
-class ProfileView(generics.RetrieveAPIView):
+class ProfileView(generics.RetrieveUpdateAPIView):
     """
-    API view for retrieving the current user's profile.
+    API view for retrieving and updating the current user's profile.
     """
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
 
     def get_object(self):
         """
-        Return the authenticated user as the object to retrieve.
+        Return the authenticated user as the object to retrieve or update.
         """
         return self.request.user
 

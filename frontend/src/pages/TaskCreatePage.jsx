@@ -12,7 +12,7 @@ const validationSchema = Yup.object({
   description: Yup.string().required('Description is required'),
   due_date: Yup.date().nullable(),
   teacher_database: Yup.string().required('Database selection is required'),
-  solution_sql: Yup.string().required('Solution SQL is required')
+  standard_solution: Yup.string()
 });
 
 export default function TaskCreatePage() {
@@ -24,6 +24,8 @@ export default function TaskCreatePage() {
   const [databases, setDatabases] = useState([]);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedSolution, setSavedSolution] = useState('');
+  const [showChanges, setShowChanges] = useState(false);
 
   useEffect(() => {
     if (courseId) {
@@ -56,7 +58,7 @@ export default function TaskCreatePage() {
       description: '',
       due_date: null,
       teacher_database: '',
-      solution_sql: ''
+      standard_solution: ''
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -71,7 +73,7 @@ export default function TaskCreatePage() {
           description: values.description,
           due_date: values.due_date,
           teacher_database: values.teacher_database,
-          solution_sql: values.solution_sql
+          standard_solution: values.standard_solution
         };
 
         const response = await api.post(`/api/courses/${courseId}/assignments/`, taskData);
@@ -86,6 +88,36 @@ export default function TaskCreatePage() {
 
   const handleCancel = () => {
     navigate(`/courses/${courseId}`);
+  };
+
+  const handleSaveSolution = () => {
+    setSavedSolution(formik.values.standard_solution);
+    setShowChanges(true);
+  };
+
+  // Function to highlight changes between saved and current solution
+  const getHighlightedChanges = () => {
+    if (!savedSolution || !formik.values.standard_solution) return '';
+
+    // Simple diff implementation - in a real app, you might want to use a proper diff library
+    const savedLines = savedSolution.split('\n');
+    const currentLines = formik.values.standard_solution.split('\n');
+
+    let result = '';
+    const maxLines = Math.max(savedLines.length, currentLines.length);
+
+    for (let i = 0; i < maxLines; i++) {
+      const savedLine = savedLines[i] || '';
+      const currentLine = currentLines[i] || '';
+
+      if (savedLine !== currentLine) {
+        result += `- ${savedLine}\n+ ${currentLine}\n`;
+      } else {
+        result += `  ${currentLine}\n`;
+      }
+    }
+
+    return result;
   };
 
   return (
@@ -165,16 +197,30 @@ export default function TaskCreatePage() {
             </Select>
           </FormControl>
 
-          {/* Solution SQL Field */}
+
+          {/* Standard Solution Field */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              {t('task.solutionSql')}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle1">
+                {t('task.standardSolution')}
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={handleSaveSolution}
+                disabled={!formik.values.standard_solution}
+              >
+                {t('task.saveChanges')}
+              </Button>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {t('task.standardSolutionDescription')}
             </Typography>
             <Editor
               height="300px"
               defaultLanguage="sql"
-              value={formik.values.solution_sql}
-              onChange={(value) => formik.setFieldValue('solution_sql', value)}
+              value={formik.values.standard_solution}
+              onChange={(value) => formik.setFieldValue('standard_solution', value)}
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
@@ -182,10 +228,33 @@ export default function TaskCreatePage() {
                 fontSize: 14,
               }}
             />
-            {formik.touched.solution_sql && formik.errors.solution_sql && (
+            {formik.touched.standard_solution && formik.errors.standard_solution && (
               <Typography color="error" variant="caption">
-                {formik.errors.solution_sql}
+                {formik.errors.standard_solution}
               </Typography>
+            )}
+
+            {/* Changes Display */}
+            {showChanges && savedSolution && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t('task.changesPreview')}
+                </Typography>
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    p: 1, 
+                    bgcolor: 'grey.100', 
+                    borderRadius: 1, 
+                    overflow: 'auto',
+                    fontSize: '0.875rem',
+                    lineHeight: 1.5,
+                    maxHeight: '200px'
+                  }}
+                >
+                  {getHighlightedChanges()}
+                </Box>
+              </Box>
             )}
           </Box>
         </Paper>

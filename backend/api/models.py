@@ -4,7 +4,7 @@ from django.db import models
 class User(AbstractUser):
     """
     Custom User model extending Django's AbstractUser.
-    Adds role-based permissions and profile picture.
+    Adds role-based permissions, profile picture, and bio.
     """
     class Role(models.TextChoices):
         """
@@ -21,6 +21,7 @@ class User(AbstractUser):
     )
     email = models.EmailField(unique=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    bio = models.TextField(blank=True, null=True, help_text="User's biography or description")
 
     def save(self, *args, **kwargs):
         """

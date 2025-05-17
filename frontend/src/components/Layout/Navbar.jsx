@@ -20,7 +20,9 @@ export default function Navbar() {
 
         {user ? (
           <>
-            <Typography sx={{ mr: 2 }}>{user.username}</Typography>
+            <Button color="inherit" onClick={() => navigate('/profile')}>
+              {user.username}
+            </Button>
             <Button color="inherit" onClick={logout}>
               {t('common.logout')}
             </Button>

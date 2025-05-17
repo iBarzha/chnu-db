@@ -9,7 +9,8 @@ import {
   Assignment as TasksIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
-  Book as CoursesIcon
+  Book as CoursesIcon,
+  AccountCircle as ProfileIcon
 } from '@mui/icons-material';
 
 export default function Sidebar() {
@@ -26,6 +27,7 @@ export default function Sidebar() {
   const menuItems = [
     // Common items for all users
     { text: t('common.dashboard'), icon: <DashboardIcon />, path: '/dashboard' },
+    { text: t('sidebar.profile'), icon: <ProfileIcon />, path: '/profile' },
     { text: t('sidebar.courses'), icon: <CoursesIcon />, path: '/courses' },
 
     // Role-specific items

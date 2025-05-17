@@ -60,7 +60,8 @@
     "courses": "Курси",
     "myCourses": "Мої курси",
     "uploadDatabase": "Завантажити БД",
-    "myDatabases": "Мої бази даних"
+    "myDatabases": "Мої бази даних",
+    "profile": "Мій профіль"
   },
   "course": {
     "courses": "Курси",
@@ -112,11 +113,28 @@
     "myDatabases": "Мої бази даних",
     "noDatabases": "Ви ще не завантажили жодної бази даних.",
     "uploadNewDatabase": "Завантажте нову базу даних",
-    "deletedSuccessfully": "Базу даних успішно видалено"
+    "deletedSuccessfully": "Базу даних успішно видалено",
+    "selectDatabase": "Виберіть базу даних",
+    "solutionSql": "SQL рішення",
+    "standardSolution": "Стандартне рішення для вибраної бази даних",
+    "standardSolutionDescription": "Створіть стандартне рішення спеціально для вибраної бази даних. Це рішення буде існувати, поки існує завдання.",
+    "saveChanges": "Зберегти зміни",
+    "changesPreview": "Перегляд змін"
   },
   "layout": {
     "appBarSpacing": "Відступ під AppBar",
     "pageContent": "Контент сторінок"
+  },
+  "profile": {
+    "title": "Мій профіль",
+    "firstName": "Ім'я",
+    "lastName": "Прізвище",
+    "bio": "Про мене",
+    "uploadPicture": "Завантажити фото",
+    "saveChanges": "Зберегти зміни",
+    "updateSuccess": "Профіль успішно оновлено",
+    "updateError": "Не вдалося оновити профіль",
+    "notAuthenticated": "Ви повинні увійти, щоб переглянути свій профіль"
   },
   "sql": {
     "editor": "SQL Редактор",

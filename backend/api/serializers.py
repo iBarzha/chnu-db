@@ -10,11 +10,11 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User model.
-    Provides basic user information.
+    Provides user information including profile details.
     """
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'profile_picture', 'bio']
         read_only_fields = ['id', 'role']
 
 class RegisterSerializer(serializers.ModelSerializer):

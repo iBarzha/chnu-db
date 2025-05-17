@@ -60,7 +60,8 @@
     "courses": "Courses",
     "myCourses": "My Courses",
     "uploadDatabase": "Upload DB",
-    "myDatabases": "My Databases"
+    "myDatabases": "My Databases",
+    "profile": "My Profile"
   },
   "course": {
     "courses": "Courses",
@@ -112,11 +113,28 @@
     "myDatabases": "My SQL Databases",
     "noDatabases": "You haven't uploaded any databases yet.",
     "uploadNewDatabase": "Upload New Database",
-    "deletedSuccessfully": "Database deleted successfully"
+    "deletedSuccessfully": "Database deleted successfully",
+    "selectDatabase": "Select Database",
+    "solutionSql": "Solution SQL",
+    "standardSolution": "Standard Solution for Selected Database",
+    "standardSolutionDescription": "Create a standard solution specifically for the selected database. This solution will exist as long as the task exists.",
+    "saveChanges": "Save Changes",
+    "changesPreview": "Changes Preview"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
     "pageContent": "Page content"
+  },
+  "profile": {
+    "title": "My Profile",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "bio": "About Me",
+    "uploadPicture": "Upload Picture",
+    "saveChanges": "Save Changes",
+    "updateSuccess": "Profile updated successfully",
+    "updateError": "Failed to update profile",
+    "notAuthenticated": "You need to be logged in to view your profile"
   },
   "sql": {
     "editor": "SQL Editor",
