@@ -8,6 +8,7 @@ import CourseDetailPage from "./pages/CourseDetailPage";
 import TaskCreatePage from "./pages/TaskCreatePage";
 import TeacherDatabaseUploadPage from "./pages/TeacherDatabaseUploadPage";
 import TeacherDatabaseListPage from "./pages/TeacherDatabaseListPage";
+import SqlEditorPage from "./pages/SqlEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 
 // Lazy-loaded components for better performance
@@ -74,6 +75,7 @@ export default function App() {
                 <Route path="/assignments/:id" element={<TaskDetailPage />} />
                 <Route path="/upload-database" element={<TeacherDatabaseUploadPage />} />
                 <Route path="/my-databases" element={<TeacherDatabaseListPage />} />
+                <Route path="/sql-editor" element={<SqlEditorPage />} />
 
               </Route>
             </Route>

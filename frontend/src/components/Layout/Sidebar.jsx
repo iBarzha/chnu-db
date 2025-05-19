@@ -10,7 +10,8 @@ import {
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
   Book as CoursesIcon,
-  AccountCircle as ProfileIcon
+  AccountCircle as ProfileIcon,
+  Code as CodeIcon
 } from '@mui/icons-material';
 
 export default function Sidebar() {
@@ -32,14 +33,14 @@ export default function Sidebar() {
 
     // Role-specific items
     ...(user?.role === 'STUDENT' ? [
-      { text: t('sidebar.myTasks'), icon: <StudentIcon />, path: '/tasks' }
+      { text: t('sidebar.myTasks'), icon: <StudentIcon />, path: '/tasks' },
+      { text: t('sidebar.sqlEditor'), icon: <CodeIcon />, path: '/sql-editor' }
     ] : []),
 
     ...(user?.role === 'TEACHER' ? [
-      { text: t('sidebar.gradeWork'), icon: <TasksIcon />, path: '/grade' },
       { text: t('sidebar.uploadDatabase'), icon: <SettingsIcon />, path: '/upload-database' },
-      { text: t('sidebar.myDatabases'), icon: <CoursesIcon />, path: '/my-databases' }
-
+      { text: t('sidebar.myDatabases'), icon: <CoursesIcon />, path: '/my-databases' },
+      { text: t('sidebar.sqlEditor'), icon: <CodeIcon />, path: '/sql-editor' }
 
     ] : []),
 

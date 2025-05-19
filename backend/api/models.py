@@ -135,3 +135,19 @@ class TeacherDatabase(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.teacher.username})"
+
+
+class TemporaryDatabase(models.Model):
+    """
+    Represents a temporary PostgreSQL database created for a user session.
+    This database is created when a user selects a teacher database in the SQL editor
+    and is deleted when the user's session ends.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='temporary_databases')
+    teacher_database = models.ForeignKey(TeacherDatabase, on_delete=models.CASCADE, related_name='temporary_instances')
+    database_name = models.CharField(max_length=100, unique=True)
+    session_key = models.CharField(max_length=40)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Temp DB: {self.database_name} (User: {self.user.username})"
