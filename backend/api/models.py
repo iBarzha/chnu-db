@@ -82,6 +82,8 @@ class Assignment(models.Model):
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     schema_script = models.TextField(help_text="SQL to initialize the database")
+    standard_solution = models.TextField(blank=True, null=True, help_text="SQL solution applied by teacher")
+    standard_db_dump = models.FileField(upload_to='task_dumps/', blank=True, null=True)
     solution_hash = models.CharField(max_length=64, help_text="Hash of the reference solution")
 
     def __str__(self):
@@ -113,8 +115,7 @@ class Submission(models.Model):
 
     def __str__(self):
         """
-        String representation of the submission.
-        """
+        String representation of the submission.        """
         return f"Submission by {self.student.username} for {self.assignment.title}"
 
     class Meta:
@@ -151,3 +152,17 @@ class TemporaryDatabase(models.Model):
 
     def __str__(self):
         return f"Temp DB: {self.database_name} (User: {self.user.username})"
+
+class Task(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    # Reference to the original database file (uploaded by teacher)
+    original_db = models.FileField(upload_to='task_dumps/')
+    # Reference to the etalon (reference) database file (after teacher manipulations)
+    etalon_db = models.FileField(upload_to='task_dumps/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+

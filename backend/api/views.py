@@ -14,7 +14,10 @@ import psycopg2.extras
 from django.conf import settings
 from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserSerializer, CourseSerializer, AssignmentSerializer, TeacherDatabaseSerializer
 from .models import Course, Assignment, TeacherDatabase, TemporaryDatabase
-
+from .models import Task
+from .serializers import TaskSerializer
+import tempfile
+import uuid
 
 # Type hints for Django models
 Course.objects: Manager
@@ -197,6 +200,139 @@ class AssignmentViewSet(viewsets.ReadOnlyModelViewSet):
         """
         return Assignment.objects.all()
 
+class TaskViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing tasks. Teachers can create tasks, upload/select a database, and save the etalon (reference) database after manipulations.
+    """
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role != User.Role.TEACHER:
+            raise PermissionDenied("Only teachers can create tasks.")
+        serializer.save()
+
+    @action(detail=True, methods=['post'], url_path='save_etalon')
+    def save_etalon(self, request, pk=None):
+        """
+        Apply teacher's SQL manipulations to a temp copy of the original DB, dump the result, and save as etalon_db.
+        Expects: { "sql": "...teacher's SQL manipulations..." }
+        """
+        from django.core.files import File
+        task = self.get_object()
+        sql = request.data.get('sql')
+        if not sql:
+            return Response({'error': 'No SQL provided.'}, status=400)
+        if not task.original_db:
+            return Response({'error': 'No original DB file attached to this task.'}, status=400)
+        # Create a temp DB and apply the original dump
+        db_config = settings.DATABASES['default']
+        temp_db_name = f"etalon_db_{uuid.uuid4().hex[:16]}"
+        admin_conn = psycopg2.connect(
+            dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],
+            host=db_config['HOST'], port=db_config['PORT']
+        )
+        admin_conn.autocommit = True
+        admin_cursor = admin_conn.cursor()
+        try:
+            admin_cursor.execute(f"CREATE DATABASE {temp_db_name}")
+            temp_conn = psycopg2.connect(
+                dbname=temp_db_name, user=db_config['USER'], password=db_config['PASSWORD'],
+                host=db_config['HOST'], port=db_config['PORT']
+            )
+            temp_conn.autocommit = True
+            temp_cursor = temp_conn.cursor()
+            # Load original DB dump
+            with open(task.original_db.path, 'r') as f:
+                temp_cursor.execute(f.read())
+            # Apply teacher's SQL
+            temp_cursor.execute(sql)
+            # Dump resulting DB to a temp file
+            with tempfile.NamedTemporaryFile(suffix='.sql', delete=False) as tmpfile:
+                dump_cmd = f"pg_dump -U {db_config['USER']} -h {db_config['HOST']} -p {db_config['PORT']} {temp_db_name} > {tmpfile.name}"
+                os.system(dump_cmd)
+                tmpfile.flush()
+                with open(tmpfile.name, 'rb') as dumpf:
+                    task.etalon_db.save(f"etalon_{task.id}.sql", File(dumpf), save=True)
+            temp_cursor.close()
+            temp_conn.close()
+        finally:
+            try:
+                admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+            except Exception:
+                pass
+            admin_cursor.close()
+            admin_conn.close()
+        return Response({'status': 'Etalon DB saved.'})
+
+    @action(detail=True, methods=['post'], url_path='submit', permission_classes=[permissions.IsAuthenticated])
+    def submit(self, request, pk=None):
+        """
+        Student submits SQL. Apply to fresh copy of original_db, compare with etalon_db.
+        Returns: {correct: bool, error: str}
+        """
+        sql = request.data.get('sql')
+        if not sql:
+            return Response({'error': 'No SQL provided.'}, status=400)
+        task = self.get_object()
+        if not task.original_db or not task.etalon_db:
+            return Response({'error': 'Task is not fully set up.'}, status=400)
+        db_config = settings.DATABASES['default']
+        temp_db_name = f"student_db_{uuid.uuid4().hex[:16]}"
+        admin_conn = psycopg2.connect(
+            dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],
+            host=db_config['HOST'], port=db_config['PORT']
+        )
+        admin_conn.autocommit = True
+        admin_cursor = admin_conn.cursor()
+        try:
+            admin_cursor.execute(f"CREATE DATABASE {temp_db_name}")
+            temp_conn = psycopg2.connect(
+                dbname=temp_db_name, user=db_config['USER'], password=db_config['PASSWORD'],
+                host=db_config['HOST'], port=db_config['PORT']
+            )
+            temp_conn.autocommit = True
+            temp_cursor = temp_conn.cursor()
+            # Load original DB dump
+            with open(task.original_db.path, 'r') as f:
+                temp_cursor.execute(f.read())
+            # Apply student's SQL
+            try:
+                temp_cursor.execute(sql)
+            except Exception as e:
+                temp_cursor.close()
+                temp_conn.close()
+                raise e
+            # Dump resulting DB to a temp file
+            with tempfile.NamedTemporaryFile(suffix='.sql', delete=False) as tmpfile:
+                dump_cmd = f"pg_dump -U {db_config['USER']} -h {db_config['HOST']} -p {db_config['PORT']} {temp_db_name} > {tmpfile.name}"
+                os.system(dump_cmd)
+                tmpfile.flush()
+                # Compare with etalon
+                with open(tmpfile.name, 'rb') as student_dump, open(task.etalon_db.path, 'rb') as etalon_dump:
+                    student_data = student_dump.read()
+                    etalon_data = etalon_dump.read()
+                    correct = student_data == etalon_data
+            temp_cursor.close()
+            temp_conn.close()
+        except Exception as e:
+            try:
+                admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+            except Exception:
+                pass
+            admin_cursor.close()
+            admin_conn.close()
+            return Response({'correct': False, 'error': str(e)})
+        try:
+            admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+        except Exception:
+            pass
+        admin_cursor.close()
+        admin_conn.close()
+        return Response({'correct': correct})
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def execute_sql_query(request):
@@ -262,7 +398,6 @@ def execute_sql_query(request):
                     admin_cursor = admin_conn.cursor()
 
                     # Generate a unique database name
-                    import uuid
                     db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
 
                     try:
@@ -414,7 +549,6 @@ def get_database_schema(request, database_id):
             admin_cursor = admin_conn.cursor()
 
             # Generate a unique database name
-            import uuid
             db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
 
             try:

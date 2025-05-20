@@ -3,12 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Typography, Paper, Box, Button, Divider, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import api from '../api/auth';
+import Editor from '@monaco-editor/react';
 
 export default function TaskDetailPage() {
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [studentSql, setStudentSql] = useState('');
+  const [submitResult, setSubmitResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -33,6 +37,19 @@ export default function TaskDetailPage() {
       navigate(`/courses/${task.course}`);
     } else {
       navigate('/courses');
+    }
+  };
+
+  const handleSubmitSql = async () => {
+    setSubmitting(true);
+    setSubmitResult(null);
+    try {
+      const res = await api.post(`/api/tasks/${id}/submit/`, { sql: studentSql });
+      setSubmitResult(res.data);
+    } catch (err) {
+      setSubmitResult({ error: err.response?.data?.error || err.message || 'Submission failed.' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -89,7 +106,36 @@ export default function TaskDetailPage() {
           </Typography>
         </Box>
 
-        {/* Additional task details can be added here */}
+        <Divider sx={{ my: 3 }} />
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6">Your SQL Solution</Typography>
+          <Editor
+            height="200px"
+            defaultLanguage="sql"
+            value={studentSql}
+            onChange={setStudentSql}
+            options={{ minimap: { enabled: false }, fontSize: 14 }}
+          />
+          <Button
+            variant="contained"
+            sx={{ mt: 2 }}
+            onClick={handleSubmitSql}
+            disabled={submitting || !studentSql}
+          >
+            {submitting ? 'Submitting...' : 'Submit Solution'}
+          </Button>
+        </Box>
+        {submitResult && (
+          <Box sx={{ mt: 2 }}>
+            {submitResult.correct ? (
+              <Typography color="success.main">Correct! Your solution matches the reference.</Typography>
+            ) : submitResult.error ? (
+              <Typography color="error">{submitResult.error}</Typography>
+            ) : (
+              <Typography color="warning.main">Incorrect. Please try again.</Typography>
+            )}
+          </Box>
+        )}
       </Paper>
     </Container>
   );
