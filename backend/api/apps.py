@@ -10,4 +10,3 @@ class ApiConfig(AppConfig):
         Import signals when the app is ready.
         This ensures that the signal handlers are registered.
         """
-        import api.signals

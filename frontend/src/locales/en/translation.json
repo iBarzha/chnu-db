@@ -17,10 +17,10 @@
     "uploading": "Uploading..."
   },
   "navbar": {
-    "appName": "SQL Classroom"
+    "appName": "SQL Educational Platform"
   },
   "home": {
-    "subtitle": "Platform for learning to work with databases",
+    "subtitle": "Educational platform for learning SQL through practical database tasks",
     "goToDashboard": "Go to dashboard"
   },
   "login": {
@@ -51,17 +51,24 @@
     "notAuthorized": "User not authorized"
   },
   "sidebar": {
-    "myTasks": "My tasks",
-    "createCourse": "Create course",
-    "gradeWork": "Grade work",
-    "userManagement": "User management",
-    "adminPanel": "Admin panel",
+    "myTasks": "My Tasks",
+    "createCourse": "Create Course",
+    "gradeWork": "Grade Work",
+    "userManagement": "User Management",
+    "adminPanel": "Admin Panel",
     "administration": "Administration",
     "courses": "Courses",
     "myCourses": "My Courses",
-    "uploadDatabase": "Upload DB",
+    "uploadDatabase": "Upload Database",
     "myDatabases": "My Databases",
-    "profile": "My Profile"
+    "profile": "My Profile",
+    "createTask": "Create Task",
+    "taskManagement": "Task Management",
+    "databaseManagement": "Database Management",
+    "studentSubmissions": "Student Submissions",
+    "evaluateSubmissions": "Evaluate Submissions",
+    "databaseWorkspace": "Database Workspace",
+    "sqlEditor": "SQL Editor"
   },
   "course": {
     "courses": "Courses",
@@ -105,21 +112,36 @@
     "run": "Run",
     "check": "Check",
     "results": "Results",
-    "uploadDatabase": "Upload Database",
+    "uploadDatabase": "Upload PostgreSQL Database",
     "databaseName": "Database name",
     "chooseFile": "Choose file",
     "uploadSuccess": "Upload success",
     "upload": "Upload",
-    "myDatabases": "My SQL Databases",
+    "myDatabases": "My PostgreSQL Databases",
     "noDatabases": "You haven't uploaded any databases yet.",
     "uploadNewDatabase": "Upload New Database",
     "deletedSuccessfully": "Database deleted successfully",
     "selectDatabase": "Select Database",
     "solutionSql": "Solution SQL",
-    "standardSolution": "Standard Solution for Selected Database",
-    "standardSolutionDescription": "Create a standard solution specifically for the selected database. This solution will exist as long as the task exists.",
+    "standardSolution": "Teacher's Reference Solution",
+    "standardSolutionDescription": "Create a reference solution by modifying a temporary copy of the original database. This solution will be used to evaluate student submissions.",
     "saveChanges": "Save Changes",
-    "changesPreview": "Changes Preview"
+    "changesPreview": "Changes Preview",
+    "createTask": "Create Task",
+    "createTaskDescription": "Create a new task by selecting a database and defining the modifications students need to make.",
+    "originalDatabase": "Original Database",
+    "temporaryCopy": "Temporary Copy",
+    "modifyDatabase": "Modify Database",
+    "studentView": "Student View",
+    "teacherView": "Teacher View",
+    "compareChanges": "Compare Changes",
+    "evaluateSubmission": "Evaluate Submission",
+    "submissionCorrect": "Correct! Your solution matches the reference.",
+    "submissionIncorrect": "Incorrect. Your database state doesn't match the expected result.",
+    "workingCopy": "Working Copy of Database",
+    "applyChanges": "Apply Changes",
+    "viewSchema": "View Database Schema",
+    "testYourSolution": "Test Your Solution Before Submitting"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
@@ -155,11 +177,26 @@
     "enterSqlQuery": "Please enter a SQL query",
     "failedToExecute": "Failed to execute query",
     "failedToFetchSchema": "Failed to fetch schema",
-    "welcome": "Welcome to SQL Classroom",
+    "welcome": "Welcome to SQL Educational Platform",
     "introText": "This is an interactive SQL environment where you can practice SQL queries and manage database schemas. Each user gets their own isolated temporary database to work with, ensuring your changes won't affect the main system. Use the SQL editor below to write and execute SQL commands, view query results, and explore the database schema.",
     "featuresText": "You can try various SQL operations including SELECT, INSERT, UPDATE, DELETE, and more. The sample queries provide examples to help you get started.",
     "loginRequired": "Log in to access the SQL editor",
-    "loginRequiredText": "The SQL editor allows you to practice SQL queries and manage database schemas. Please log in or register to access this feature."
+    "loginRequiredText": "The SQL editor allows you to practice SQL queries and manage database schemas. Please log in or register to access this feature.",
+    "teacherWorkspace": "Teacher Workspace",
+    "studentWorkspace": "Student Workspace",
+    "originalDatabase": "Original Database",
+    "temporaryCopy": "Working Copy",
+    "compareWithOriginal": "Compare with Original",
+    "saveAsReference": "Save as Reference Solution",
+    "testYourSolution": "Test Your Solution",
+    "submitSolution": "Submit Solution",
+    "viewDatabaseStructure": "View Database Structure",
+    "databaseModified": "Database has been modified",
+    "resetToOriginal": "Reset to Original State",
+    "teacherInstructions": "Modify the database to create a reference solution that students will need to replicate",
+    "studentInstructions": "Write SQL queries to modify the database to match the expected state",
+    "viewExpectedResult": "View Expected Result (Teacher Only)",
+    "compareWithExpected": "Compare Your Result with Expected"
   }
 
 }
