@@ -83,6 +83,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+# Session and CORS settings for frontend-backend session sharing
+SESSION_COOKIE_SAMESITE = 'Lax'  # 'None' if using HTTPS and different domains
+SESSION_COOKIE_SECURE = False    # True if using HTTPS
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # адрес вашего фронта
+]
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 

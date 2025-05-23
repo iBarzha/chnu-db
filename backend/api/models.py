@@ -149,6 +149,7 @@ class TemporaryDatabase(models.Model):
     database_name = models.CharField(max_length=100, unique=True)
     session_key = models.CharField(max_length=40)
     created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Temp DB: {self.database_name} (User: {self.user.username})"

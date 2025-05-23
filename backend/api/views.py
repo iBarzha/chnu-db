@@ -384,6 +384,8 @@ def execute_sql_query(request):
                     )
                     # Use the existing temporary database
                     db_name = temp_db.database_name
+                    # Update last_used timestamp
+                    temp_db.save(update_fields=["last_used"])
                 except TemporaryDatabase.DoesNotExist:
                     # Create a new temporary database
                     db_config = settings.DATABASES['default']
@@ -673,3 +675,51 @@ def get_database_schema(request, database_id):
         )
     except Exception as e:
         return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_temp_database(request):
+    """
+    Удалить временную базу пользователя для выбранной teacher_database и session_key.
+    Тело запроса: { database_id }
+    """
+    database_id = request.data.get('database_id')
+    if not database_id:
+        return Response({'error': 'No database_id provided'}, status=400)
+    try:
+        teacher_db = TeacherDatabase.objects.get(id=database_id)
+        session_key = request.session.session_key
+        if not session_key:
+            request.session.save()
+            session_key = request.session.session_key
+        temp_db = TemporaryDatabase.objects.get(
+            user=request.user,
+            teacher_database=teacher_db,
+            session_key=session_key
+        )
+        # Drop the actual PostgreSQL database
+        db_config = settings.DATABASES['default']
+        admin_conn = psycopg2.connect(
+            dbname=db_config['NAME'],
+            user=db_config['USER'],
+            password=db_config['PASSWORD'],
+            host=db_config['HOST'],
+            port=db_config['PORT']
+        )
+        admin_conn.autocommit = True
+        admin_cursor = admin_conn.cursor()
+        try:
+            admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db.database_name}")
+        except Exception:
+            pass
+        admin_cursor.close()
+        admin_conn.close()
+        temp_db.delete()
+        return Response({'status': 'Temporary database deleted'})
+    except TeacherDatabase.DoesNotExist:
+        return Response({'error': 'Database not found'}, status=404)
+    except TemporaryDatabase.DoesNotExist:
+        return Response({'error': 'Temporary database not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+

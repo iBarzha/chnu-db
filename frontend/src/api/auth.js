@@ -13,6 +13,7 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
     timeout: 10000, // 10 seconds timeout
+    withCredentials: true, // Важно для передачи sessionid
 });
 
 // Helper to check if token is expired
@@ -104,3 +105,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
