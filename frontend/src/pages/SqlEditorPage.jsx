@@ -77,7 +77,11 @@ const SQLEditorPage = () => {
 
     setLoadingSchema(true);
     try {
-      const response = await api.get(`/api/database-schema/${databaseId}/`);
+      let url = `/api/database-schema/${databaseId}/`;
+      if (databaseId === 'temporary' && selectedDatabase) {
+        url += `?teacher_db=${selectedDatabase.id}`;
+      }
+      const response = await api.get(url);
       setSchema(response.data);
     } catch (err) {
       console.error('Error loading schema:', err);
@@ -91,7 +95,7 @@ const SQLEditorPage = () => {
     setLoadingHistory(true);
     try {
       const response = await api.get('/api/sql-history/');
-      setHistory(response.data);
+      setHistory(response.data.history || []);
     } catch (err) {
       console.error('Error loading SQL history:', err);
     } finally {
@@ -110,6 +114,10 @@ const SQLEditorPage = () => {
   const handleExecute = async () => {
     if (!sql.trim()) {
       setError(t('sql.enterSqlQuery'));
+      return;
+    }
+    if (!selectedDatabase) {
+      setError('Please select a database before running queries.');
       return;
     }
 
@@ -135,6 +143,16 @@ const SQLEditorPage = () => {
       // Refresh history after execution
       loadHistory();
 
+      // If the query is DDL (CREATE, DROP, ALTER), refresh schema
+      const ddlRegex = /^(\s*)(CREATE|DROP|ALTER)\s+/i;
+      if (ddlRegex.test(sql)) {
+        try {
+          await loadSchema('temporary');
+        } catch (e) {
+          setError((e?.response?.data?.error || e?.message || 'Failed to fetch schema') + ' (schema)');
+        }
+      }
+
     } catch (err) {
       console.error('Error executing SQL:', err);
       setError(err.response?.data?.error || t('sql.failedToExecute'));
@@ -152,9 +170,9 @@ const SQLEditorPage = () => {
   };
 
   const handleHistoryItemClick = (item) => {
-    setSql(item.sql);
+    setSql(item.query);
     if (editorRef.current) {
-      editorRef.current.setValue(item.sql);
+      editorRef.current.setValue(item.query);
     }
   };
 
@@ -167,7 +185,7 @@ const SQLEditorPage = () => {
 
   const handleDatabaseChange = (database) => {
     setSelectedDatabase(database);
-    loadSchema(database.id);
+    loadSchema('temporary');
   };
 
   const renderResults = () => {
@@ -189,9 +207,9 @@ const SQLEditorPage = () => {
 
     if (!results || results.length === 0) {
       return (
-        <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
-          {t('sql.executeToSeeResults')}
-        </Typography>
+        <Alert severity="success" sx={{ my: 2 }}>
+          Query executed successfully (no results to display)
+        </Alert>
       );
     }
 
@@ -269,14 +287,14 @@ const SQLEditorPage = () => {
 
     return (
       <Box sx={{ mt: 2 }}>
-        {history.map((item) => (
+        {history.map((item, idx) => (
           <Paper
-            key={item.id}
+            key={idx}
             sx={{
               p: 2,
               mb: 1,
               cursor: 'pointer',
-              borderLeft: item.success ? '4px solid green' : '4px solid red',
+              borderLeft: '4px solid #1976d2',
               '&:hover': { bgcolor: 'action.hover' }
             }}
             onClick={() => handleHistoryItemClick(item)}
@@ -287,41 +305,16 @@ const SQLEditorPage = () => {
               maxHeight: '100px',
               overflow: 'auto'
             }}>
-              {item.sql}
+              {item.query}
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
               <Typography variant="caption" color="text.secondary">
-                {new Date(item.timestamp).toLocaleString()}
+                {item.executed_at ? new Date(item.executed_at).toLocaleString() : ''}
               </Typography>
-              <Box>
-                {item.execution_time && (
-                  <Chip
-                    label={`${(item.execution_time * 1000).toFixed(2)} ms`}
-                    size="small"
-                    sx={{ mr: 1 }}
-                  />
-                )}
-                <Chip
-                  label={item.success ? 'Success' : 'Error'}
-                  color={item.success ? 'success' : 'error'}
-                  size="small"
-                />
-              </Box>
+              {item.database_name && (
+                <Chip label={item.database_name} size="small" color="primary" />
+              )}
             </Box>
-            {item.error_message && (
-              <Typography variant="caption" color="error" component="pre" sx={{
-                mt: 1,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word'
-              }}>
-                {item.error_message}
-              </Typography>
-            )}
-            {item.result_summary && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                {item.result_summary}
-              </Typography>
-            )}
           </Paper>
         ))}
       </Box>

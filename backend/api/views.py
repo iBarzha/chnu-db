@@ -18,6 +18,7 @@ from .models import Task
 from .serializers import TaskSerializer
 import tempfile
 import uuid
+from .models import Course, Assignment, TeacherDatabase, TemporaryDatabase, SQLHistory
 
 # Type hints for Django models
 Course.objects: Manager
@@ -353,192 +354,40 @@ def execute_sql_query(request):
 
     if not query:
         return Response({'error': 'No query provided'}, status=status.HTTP_400_BAD_REQUEST)
+    if not database_id:
+        return Response({'error': 'Please select a database before running queries.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # If database_id is provided, use the specified database
-        if database_id:
-            try:
-                teacher_db = TeacherDatabase.objects.get(id=database_id)
-
-                # Check permissions - only the teacher who uploaded the database or admin can use it
-                if request.user.role != User.Role.ADMIN and teacher_db.teacher != request.user:
-                    return Response(
-                        {'error': 'You do not have permission to use this database'}, 
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-
-                # Get the session key
-                session_key = request.session.session_key
-                if not session_key:
-                    # Create a new session if one doesn't exist
-                    request.session.save()
-                    session_key = request.session.session_key
-
-                # Check if a temporary database already exists for this user and teacher database
-                temp_db = None
-                try:
-                    temp_db = TemporaryDatabase.objects.get(
-                        user=request.user,
-                        teacher_database=teacher_db,
-                        session_key=session_key
-                    )
-                    # Use the existing temporary database
-                    db_name = temp_db.database_name
-                    # Update last_used timestamp
-                    temp_db.save(update_fields=["last_used"])
-                except TemporaryDatabase.DoesNotExist:
-                    # Create a new temporary database
-                    db_config = settings.DATABASES['default']
-                    admin_conn = psycopg2.connect(
-                        dbname=db_config['NAME'],
-                        user=db_config['USER'],
-                        password=db_config['PASSWORD'],
-                        host=db_config['HOST'],
-                        port=db_config['PORT']
-                    )
-                    admin_conn.autocommit = True  # Required for CREATE DATABASE
-                    admin_cursor = admin_conn.cursor()
-
-                    # Generate a unique database name
-                    db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
-
-                    try:
-                        # Create the database
-                        admin_cursor.execute(f"CREATE DATABASE {db_name}")
-
-                        # Create a new connection to the temporary database
-                        temp_conn = psycopg2.connect(
-                            dbname=db_name,
-                            user=db_config['USER'],
-                            password=db_config['PASSWORD'],
-                            host=db_config['HOST'],
-                            port=db_config['PORT']
-                        )
-                        temp_conn.autocommit = True
-                        temp_cursor = temp_conn.cursor()
-
-                        # Execute the SQL dump to populate the database
-                        with open(teacher_db.sql_dump.path, 'r') as f:
-                            sql_dump = f.read()
-                            temp_cursor.execute(sql_dump)
-
-                        # Close the temporary connection
-                        temp_cursor.close()
-                        temp_conn.close()
-
-                        # Create a record of the temporary database
-                        temp_db = TemporaryDatabase.objects.create(
-                            user=request.user,
-                            teacher_database=teacher_db,
-                            database_name=db_name,
-                            session_key=session_key
-                        )
-                    except Exception as e:
-                        # If anything goes wrong, drop the database if it was created
-                        try:
-                            admin_cursor.execute(f"DROP DATABASE IF EXISTS {db_name}")
-                        except:
-                            pass
-                        admin_cursor.close()
-                        admin_conn.close()
-                        raise e
-
-                    # Close the admin connection
-                    admin_cursor.close()
-                    admin_conn.close()
-
-                # Connect to the temporary database
-                db_config = settings.DATABASES['default']
-                conn = psycopg2.connect(
-                    dbname=db_name,
-                    user=db_config['USER'],
-                    password=db_config['PASSWORD'],
-                    host=db_config['HOST'],
-                    port=db_config['PORT']
-                )
-
-            except TeacherDatabase.DoesNotExist:
-                return Response(
-                    {'error': 'Database not found'}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        else:
-            # Use the main PostgreSQL database
-            db_config = settings.DATABASES['default']
-            conn = psycopg2.connect(
-                dbname=db_config['NAME'],
-                user=db_config['USER'],
-                password=db_config['PASSWORD'],
-                host=db_config['HOST'],
-                port=db_config['PORT']
-            )
-
-        # Create a cursor with dictionary-like results
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-        # Execute the query
-        cursor.execute(query)
-
-        # Get column names
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-
-        # Fetch results
-        rows = cursor.fetchall()
-        results = [dict(row) for row in rows]
-
-        # Close connection
-        cursor.close()
-        conn.close()
-
-        return Response({
-            'results': results,
-            'columns': columns
-        })
-
-    except psycopg2.Error as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def get_database_schema(request, database_id):
-    """
-    Get the schema of a specified database.
-
-    Returns:
-    - tables: List of tables in the database
-    - columns: Dictionary mapping table names to their columns
-    """
-    try:
-        teacher_db = TeacherDatabase.objects.get(id=database_id)
-
-        # Check permissions - only the teacher who uploaded the database or admin can view its schema
-        if request.user.role != User.Role.ADMIN and teacher_db.teacher != request.user:
-            return Response(
-                {'error': 'You do not have permission to view this database'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Get the session key
+        # Всегда используем временную базу для пользователя и сессии
         session_key = request.session.session_key
         if not session_key:
-            # Create a new session if one doesn't exist
             request.session.save()
             session_key = request.session.session_key
 
-        # Check if a temporary database already exists for this user and teacher database
-        db_name = None
+        # Если указан database_id, используем соответствующий дамп, иначе - пустой дамп
+        teacher_db = None
+        sql_dump_path = None
+        if database_id:
+            teacher_db = TeacherDatabase.objects.get(id=database_id)
+            sql_dump_path = teacher_db.sql_dump.path
+        else:
+            # Путь к дефолтному пустому дампу (создайте такой файл заранее)
+            sql_dump_path = os.path.join(settings.BASE_DIR, 'sample_database.sql')
+
+        # Проверяем, есть ли временная база для пользователя и сессии (и выбранной teacher_db, если есть)
+        print(f"[execute_sql_query] user={request.user.id}, session_key={session_key}, database_id={database_id}")
+        temp_db = None
         try:
             temp_db = TemporaryDatabase.objects.get(
                 user=request.user,
-                teacher_database=teacher_db,
+                teacher_database=teacher_db if teacher_db else None,
                 session_key=session_key
             )
-            # Use the existing temporary database
             db_name = temp_db.database_name
+            print(f"[execute_sql_query] FOUND temp_db: id={temp_db.id}, db_name={db_name}, teacher_db={teacher_db.id if teacher_db else None}")
+            temp_db.save(update_fields=["last_used"])
         except TemporaryDatabase.DoesNotExist:
-            # Create a new temporary database
+            print(f"[execute_sql_query] NOT FOUND temp_db, will create new for user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
             db_config = settings.DATABASES['default']
             admin_conn = psycopg2.connect(
                 dbname=db_config['NAME'],
@@ -547,17 +396,11 @@ def get_database_schema(request, database_id):
                 host=db_config['HOST'],
                 port=db_config['PORT']
             )
-            admin_conn.autocommit = True  # Required for CREATE DATABASE
+            admin_conn.autocommit = True
             admin_cursor = admin_conn.cursor()
-
-            # Generate a unique database name
             db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
-
             try:
-                # Create the database
                 admin_cursor.execute(f"CREATE DATABASE {db_name}")
-
-                # Create a new connection to the temporary database
                 temp_conn = psycopg2.connect(
                     dbname=db_name,
                     user=db_config['USER'],
@@ -567,25 +410,18 @@ def get_database_schema(request, database_id):
                 )
                 temp_conn.autocommit = True
                 temp_cursor = temp_conn.cursor()
-
-                # Execute the SQL dump to populate the database
-                with open(teacher_db.sql_dump.path, 'r') as f:
+                with open(sql_dump_path, 'r') as f:
                     sql_dump = f.read()
                     temp_cursor.execute(sql_dump)
-
-                # Close the temporary connection
                 temp_cursor.close()
                 temp_conn.close()
-
-                # Create a record of the temporary database
                 temp_db = TemporaryDatabase.objects.create(
                     user=request.user,
-                    teacher_database=teacher_db,
+                    teacher_database=teacher_db if teacher_db else None,
                     database_name=db_name,
                     session_key=session_key
                 )
             except Exception as e:
-                # If anything goes wrong, drop the database if it was created
                 try:
                     admin_cursor.execute(f"DROP DATABASE IF EXISTS {db_name}")
                 except:
@@ -593,10 +429,157 @@ def get_database_schema(request, database_id):
                 admin_cursor.close()
                 admin_conn.close()
                 raise e
-
-            # Close the admin connection
             admin_cursor.close()
             admin_conn.close()
+
+        db_config = settings.DATABASES['default']
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=db_config['USER'],
+            password=db_config['PASSWORD'],
+            host=db_config['HOST'],
+            port=db_config['PORT']
+        )
+        conn.autocommit = True  # Гарантируем применение DDL сразу
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute(query)
+        print(f"[execute_sql_query][SQL] {query}")
+        columns = [desc[0] for desc in cursor.description] if cursor.description else []
+        rows = cursor.fetchall() if cursor.description else []
+        results = [dict(row) for row in rows]
+        SQLHistory.objects.create(
+            user=request.user,
+            query=query,
+            database=teacher_db if teacher_db else None
+        )
+        cursor.close()
+        conn.close()
+        return Response({
+            'results': results,
+            'columns': columns
+        })
+    except psycopg2.Error as e:
+        print(f"[execute_sql_query][ERROR] {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(f"[execute_sql_query][EXCEPTION] {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_database_schema(request, database_id):
+    """
+    Get the schema of a specified database or the user's temporary database if database_id == 'temporary'.
+    """
+    try:
+        if (database_id == 'temporary'):
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.save()
+                session_key = request.session.session_key
+            teacher_db_id = request.GET.get('teacher_db')
+            teacher_db = None
+            if teacher_db_id:
+                try:
+                    teacher_db = TeacherDatabase.objects.get(id=teacher_db_id)
+                except TeacherDatabase.DoesNotExist:
+                    return Response({'error': 'Teacher database not found'}, status=status.HTTP_404_NOT_FOUND)
+            print(f"[get_database_schema] user={request.user.id}, session_key={session_key}, teacher_db={teacher_db.id if teacher_db else None}")
+            temp_db = TemporaryDatabase.objects.filter(user=request.user, session_key=session_key, teacher_database=teacher_db).order_by('-id').first()
+            if temp_db:
+                print(f"[get_database_schema] FOUND temp_db: id={temp_db.id}, db_name={temp_db.database_name}")
+            else:
+                print(f"[get_database_schema] NOT FOUND temp_db for user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
+            if not temp_db:
+                return Response({'error': 'Temporary database not found'}, status=status.HTTP_404_NOT_FOUND)
+            db_name = temp_db.database_name
+        else:
+            teacher_db = TeacherDatabase.objects.get(id=database_id)
+
+            # Check permissions - only the teacher who uploaded the database or admin can view its schema
+            if request.user.role != User.Role.ADMIN and teacher_db.teacher != request.user:
+                return Response(
+                    {'error': 'You do not have permission to view this database'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Get the session key
+            session_key = request.session.session_key
+            if not session_key:
+                # Create a new session if one doesn't exist
+                request.session.save()
+                session_key = request.session.session_key
+
+            # Check if a temporary database already exists for this user and teacher database
+            db_name = None
+            try:
+                temp_db = TemporaryDatabase.objects.get(
+                    user=request.user,
+                    teacher_database=teacher_db,
+                    session_key=session_key
+                )
+                # Use the existing temporary database
+                db_name = temp_db.database_name
+            except TemporaryDatabase.DoesNotExist:
+                # Create a new temporary database
+                db_config = settings.DATABASES['default']
+                admin_conn = psycopg2.connect(
+                    dbname=db_config['NAME'],
+                    user=db_config['USER'],
+                    password=db_config['PASSWORD'],
+                    host=db_config['HOST'],
+                    port=db_config['PORT']
+                )
+                admin_conn.autocommit = True  # Required for CREATE DATABASE
+                admin_cursor = admin_conn.cursor()
+
+                # Generate a unique database name
+                db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
+
+                try:
+                    # Create the database
+                    admin_cursor.execute(f"CREATE DATABASE {db_name}")
+
+                    # Create a new connection to the temporary database
+                    temp_conn = psycopg2.connect(
+                        dbname=db_name,
+                        user=db_config['USER'],
+                        password=db_config['PASSWORD'],
+                        host=db_config['HOST'],
+                        port=db_config['PORT']
+                    )
+                    temp_conn.autocommit = True
+                    temp_cursor = temp_conn.cursor()
+
+                    # Execute the SQL dump to populate the database
+                    with open(teacher_db.sql_dump.path, 'r') as f:
+                        sql_dump = f.read()
+                        temp_cursor.execute(sql_dump)
+
+                    # Close the temporary connection
+                    temp_cursor.close()
+                    temp_conn.close()
+
+                    # Create a record of the temporary database
+                    temp_db = TemporaryDatabase.objects.create(
+                        user=request.user,
+                        teacher_database=teacher_db,
+                        database_name=db_name,
+                        session_key=session_key
+                    )
+                except Exception as e:
+                    # If anything goes wrong, drop the database if it was created
+                    try:
+                        admin_cursor.execute(f"DROP DATABASE IF EXISTS {db_name}")
+                    except:
+                        pass
+                    admin_cursor.close()
+                    admin_conn.close()
+                    raise e
+
+                # Close the admin connection
+                admin_cursor.close()
+                admin_conn.close()
 
         try:
             # Connect to the temporary database
@@ -723,3 +706,20 @@ def delete_temp_database(request):
     except Exception as e:
         return Response({'error': str(e)}, status=500)
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def sql_history(request):
+    """
+    Возвращает историю SQL-запросов пользователя (последние 50).
+    """
+    history = SQLHistory.objects.filter(user=request.user).order_by('-executed_at')[:50]
+    data = [
+        {
+            'query': h.query,
+            'executed_at': h.executed_at,
+            'database_id': h.database.id if h.database else None,
+            'database_name': h.database.name if h.database else None
+        }
+        for h in history
+    ]
+    return Response({'history': data})
