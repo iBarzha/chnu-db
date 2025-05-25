@@ -60,7 +60,12 @@ export default function Sidebar() {
       sx={{
         width: 240,
         flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box' },
+        [`& .MuiDrawer-paper`]: {
+          width: 240,
+          boxSizing: 'border-box',
+          top: 64, // высота AppBar
+          height: 'calc(100vh - 64px)',
+        },
       }}
     >
       <Toolbar /> {/* {t('layout.appBarSpacing')} */}
