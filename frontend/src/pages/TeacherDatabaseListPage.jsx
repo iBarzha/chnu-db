@@ -21,22 +21,24 @@ export default function TeacherDatabaseListPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // Завантаження списку баз даних викладача
   const fetchDatabases = async () => {
     try {
       const res = await api.get('/api/teacher-databases/');
       setDatabases(res.data);
     } catch (err) {
-      setError('Failed to load databases');
+      setError('Не вдалося завантажити бази даних');
     }
   };
 
+  // Видалення бази даних
   const handleDelete = async (id) => {
     try {
       await api.delete(`/api/teacher-databases/${id}/`);
       setDatabases(prev => prev.filter(db => db.id !== id));
       setSuccess(t('task.deletedSuccessfully'));
     } catch (err) {
-      setError('Delete failed');
+      setError('Не вдалося видалити');
     }
   };
 

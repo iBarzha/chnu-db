@@ -73,7 +73,7 @@ export default function Login() {
     return valid;
   };
 
-  // Handle form submission
+  // Валідація форми при сабміті
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -149,6 +149,7 @@ export default function Login() {
               gap: 2.5
             }}
           >
+            {/* Поле для імені користувача */}
             <TextField
               label={t('common.username')}
               name="username"
@@ -163,6 +164,7 @@ export default function Login() {
               autoFocus
             />
 
+            {/* Поле для пароля */}
             <TextField
               label={t('common.password')}
               name="password"

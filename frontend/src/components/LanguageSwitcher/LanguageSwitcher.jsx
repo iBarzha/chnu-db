@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { Language as LanguageIcon } from '@mui/icons-material';
 
-// Flag icons for languages
+// Прапорці для мов
 const flags = {
   en: '🇬🇧',
   ua: '🇺🇦'
@@ -14,20 +14,20 @@ export default function LanguageSwitcher() {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
-  // Get current language
+  // Отримати поточну мову
   const currentLanguage = i18n.language || 'en';
 
-  // Handle menu open
+  // Відкрити меню вибору мови
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
-  // Handle menu close
+  // Закрити меню вибору мови
   const handleClose = () => {
     setAnchorEl(null);
   };
 
-  // Handle language change
+  // Змінити мову
   const changeLanguage = (language) => {
     i18n.changeLanguage(language);
     handleClose();
@@ -59,3 +59,4 @@ export default function LanguageSwitcher() {
     </>
   );
 }
+

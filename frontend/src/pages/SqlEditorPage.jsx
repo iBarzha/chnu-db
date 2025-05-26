@@ -34,24 +34,24 @@ const SQLEditorPage = () => {
   const [loadingSchema, setLoadingSchema] = useState(false);
   const editorRef = useRef(null);
 
-  // Sample queries for different operations
+  // Приклади запитів для різних операцій
   const sampleQueries = {
     select: 'SELECT * FROM users LIMIT 10;',
-    insert: 'INSERT INTO users (username, email) VALUES (\'newuser\', \'newuser@example.com\');',
-    update: 'UPDATE users SET email = \'updated@example.com\' WHERE username = \'newuser\';',
-    delete: 'DELETE FROM users WHERE username = \'newuser\';',
+    insert: "INSERT INTO users (username, email) VALUES ('newuser', 'newuser@example.com');",
+    update: "UPDATE users SET email = 'updated@example.com' WHERE username = 'newuser';",
+    delete: "DELETE FROM users WHERE username = 'newuser';",
     create: 'CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(100));',
     join: 'SELECT u.username, p.title FROM users u JOIN posts p ON u.id = p.user_id LIMIT 10;'
   };
 
-  // Load user's databases on component mount
+  // Завантаження баз даних користувача при монтуванні компонента
   useEffect(() => {
     if (user && user.role === 'TEACHER') {
       loadDatabases();
     }
   }, [user]);
 
-  // Load SQL history
+  // Завантаження історії SQL запитів
   useEffect(() => {
     loadHistory();
   }, []);

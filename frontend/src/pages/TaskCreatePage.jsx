@@ -25,6 +25,7 @@ export default function TaskCreatePage() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Завантаження даних курсу при монтуванні
   useEffect(() => {
     if (courseId) {
       setLoading(true);
@@ -40,6 +41,7 @@ export default function TaskCreatePage() {
     }
   }, [courseId]);
 
+  // Завантаження списку баз даних вчителя при монтуванні
   useEffect(() => {
     api.get('/api/teacher-databases/')
       .then(res => {
@@ -105,6 +107,7 @@ export default function TaskCreatePage() {
     },
   });
 
+  // Обробка скасування створення завдання
   const handleCancel = () => {
     navigate(`/courses/${courseId}`);
   };
@@ -129,7 +132,7 @@ export default function TaskCreatePage() {
 
       <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
         <Paper sx={{ p: 3, mb: 3 }}>
-          {/* Title Field */}
+          {/* Поле для назви завдання */}
           <TextField
             fullWidth
             label={t('task.title')}
@@ -141,7 +144,7 @@ export default function TaskCreatePage() {
             sx={{ mb: 3 }}
           />
 
-          {/* Description Field */}
+          {/* Поле для опису завдання */}
           <TextField
             fullWidth
             label={t('task.description')}
@@ -155,7 +158,7 @@ export default function TaskCreatePage() {
             sx={{ mb: 3 }}
           />
 
-          {/* Due Date Field */}
+          {/* Поле для дати дедлайну */}
           <TextField
             fullWidth
             label={t('task.dueDate')}
@@ -169,7 +172,7 @@ export default function TaskCreatePage() {
             sx={{ mb: 3 }}
           />
 
-          {/* Database Selection */}
+          {/* Вибір бази даних */}
           <FormControl fullWidth sx={{ mb: 3 }} error={formik.touched.teacher_database && Boolean(formik.errors.teacher_database)}>
             <InputLabel>{t('task.selectDatabase')}</InputLabel>
             <Select

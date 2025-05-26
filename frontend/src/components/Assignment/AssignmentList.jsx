@@ -12,14 +12,14 @@ export default function AssignmentList({ courseId, assignments: propAssignments 
 
   const fetchAssignments = useCallback(() => {
     if (courseId) {
-      // If assignments are provided as props, use them
+      // Якщо завдання передані через пропси, використовуємо їх
       if (propAssignments && propAssignments.length > 0) {
         setAssignments(propAssignments);
         setLoading(false);
         return;
       }
 
-      // Otherwise, fetch assignments from the API
+      // Інакше отримуємо завдання через API
       setLoading(true);
       api.get(`/api/courses/${courseId}/get_assignments/`)
         .then(res => {
@@ -27,7 +27,7 @@ export default function AssignmentList({ courseId, assignments: propAssignments 
           setLoading(false);
         })
         .catch(err => {
-          console.error('Error fetching assignments:', err);
+          console.error('Помилка отримання завдань:', err);
           setLoading(false);
         });
     }

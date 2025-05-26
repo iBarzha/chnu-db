@@ -17,7 +17,7 @@ export default function CourseMaterials({ courseId }) {
           setLoading(false);
         })
         .catch(err => {
-          console.error('Error fetching materials:', err);
+          console.error('Помилка отримання матеріалів:', err);
           setLoading(false);
         });
     }
@@ -52,6 +52,7 @@ export default function CourseMaterials({ courseId }) {
                   href={material.file_url}
                   target="_blank"
                 >
+                  {/* Кнопка для завантаження матеріалу */}
                   Download
                 </Button>
               }
@@ -67,3 +68,4 @@ export default function CourseMaterials({ courseId }) {
     </Paper>
   );
 }
+

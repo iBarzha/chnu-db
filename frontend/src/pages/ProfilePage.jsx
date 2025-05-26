@@ -20,7 +20,7 @@ export default function ProfilePage() {
   });
   const [previewUrl, setPreviewUrl] = useState('');
 
-  // Load user data when component mounts
+  // Завантаження даних користувача при монтуванні компонента
   useEffect(() => {
     if (user) {
       setFormData({
@@ -32,13 +32,14 @@ export default function ProfilePage() {
         profile_picture: null
       });
 
-      // Set preview URL if user has a profile picture
+      // Встановлення прев'ю, якщо є фото профілю
       if (user.profile_picture) {
         setPreviewUrl(user.profile_picture);
       }
     }
   }, [user]);
 
+  // Обробка зміни текстових полів
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -47,6 +48,7 @@ export default function ProfilePage() {
     }));
   };
 
+  // Обробка вибору файлу для фото профілю
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -55,7 +57,7 @@ export default function ProfilePage() {
         profile_picture: file
       }));
 
-      // Create a preview URL for the selected image
+      // Створення прев'ю для вибраного зображення
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -64,6 +66,7 @@ export default function ProfilePage() {
     }
   };
 
+  // Відправка форми на сервер
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -71,7 +74,7 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
-      // Create a FormData object to handle file uploads
+      // Створення FormData для відправки файлів
       const data = new FormData();
       data.append('username', formData.username);
       data.append('email', formData.email);
@@ -79,12 +82,12 @@ export default function ProfilePage() {
       data.append('last_name', formData.last_name);
       data.append('bio', formData.bio);
 
-      // Only append profile_picture if a new file was selected
+      // Додаємо фото профілю, якщо вибрано новий файл
       if (formData.profile_picture) {
         data.append('profile_picture', formData.profile_picture);
       }
 
-      // Send the update request
+      // Відправка запиту на оновлення профілю
       await api.put('/api/auth/profile/', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -92,8 +95,7 @@ export default function ProfilePage() {
       });
 
       setSuccess(t('profile.updateSuccess'));
-      
-      // Refresh the token to update the user data in the context
+      // Оновлення даних користувача у контексті
       await refreshToken();
     } catch (err) {
       console.error('Profile update error:', err);
@@ -223,3 +225,4 @@ export default function ProfilePage() {
     </Container>
   );
 }
+

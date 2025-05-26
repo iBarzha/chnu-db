@@ -4,25 +4,25 @@ import api from '../api/auth';
 
 const AuthContext = createContext();
 
-// Helper function to securely store token with expiration
+// Допоміжна функція для безпечного збереження токена з терміном дії
 const securelyStoreToken = (token, refreshToken) => {
     if (!token) return;
 
-    // Store in sessionStorage instead of localStorage for better security
-    // (token is lost when browser is closed)
+    // Зберігаємо у sessionStorage замість localStorage для більшої безпеки
+    // (токен буде втрачено після закриття браузера)
     sessionStorage.setItem('token', token);
 
-    // Store refresh token if provided
+    // Зберігаємо refresh token, якщо він є
     if (refreshToken) {
         sessionStorage.setItem('refreshToken', refreshToken);
     }
 
-    // Set token expiration (e.g., 1 hour from now)
+    // Встановлюємо термін дії токена (наприклад, 1 година від поточного часу)
     const expiresAt = new Date().getTime() + 60 * 60 * 1000;
     sessionStorage.setItem('tokenExpiry', expiresAt.toString());
 };
 
-// Helper function to check if token is expired
+// Допоміжна функція для перевірки, чи токен протермінований
 const isTokenExpired = () => {
     const expiry = sessionStorage.getItem('tokenExpiry');
     if (!expiry) return true;
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // Function to fetch user profile
+    // Функція для отримання профілю користувача
     const fetchUserProfile = useCallback(async () => {
         try {
             const { data } = await api.get('/api/auth/profile/');
@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
             setIsAuthenticated(true);
             return true;
         } catch (error) {
-            console.error('Error fetching user profile:', error);
+            console.error('Помилка отримання профілю користувача:', error);
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('tokenExpiry');
             setIsAuthenticated(false);
@@ -55,14 +55,14 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    // Check authentication status on mount
+    // Перевірка статусу автентифікації при монтуванні
     useEffect(() => {
         const token = sessionStorage.getItem('token');
 
         if (token && !isTokenExpired()) {
             fetchUserProfile();
         } else {
-            // Clear expired token
+            // Очищення протермінованого токена
             if (token && isTokenExpired()) {
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('tokenExpiry');
@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
             navigate('/dashboard');
             return data;
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('Помилка входу:', error);
             throw error;
         }
     };
@@ -94,18 +94,18 @@ export function AuthProvider({ children }) {
         navigate('/login');
     };
 
-    // Provide a function to refresh the token
+    // Функція для оновлення токена
     const refreshToken = async () => {
         try {
             const refreshToken = sessionStorage.getItem('refreshToken');
-            if (!refreshToken) throw new Error('No refresh token available');
+            if (!refreshToken) throw new Error('Відсутній refresh token');
 
             const { data } = await api.post('/api/auth/token/refresh/', { refresh: refreshToken });
-            // Keep the existing refresh token when storing the new access token
+            // Зберігаємо новий access token, залишаючи refresh token
             securelyStoreToken(data.access, refreshToken);
             return true;
         } catch (error) {
-            console.error('Token refresh error:', error);
+            console.error('Помилка оновлення токена:', error);
             logout();
             return false;
         }

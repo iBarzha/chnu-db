@@ -3,16 +3,16 @@ from django.db import models
 
 class User(AbstractUser):
     """
-    Custom User model extending Django's AbstractUser.
-    Adds role-based permissions, profile picture, and bio.
+    Кастомна модель користувача, що розширює AbstractUser Django.
+    Додає ролі, фото профілю та біографію.
     """
     class Role(models.TextChoices):
         """
-        Enumeration of possible user roles.
+        Перелік можливих ролей користувача.
         """
-        ADMIN = 'ADMIN', 'Administrator'
-        TEACHER = 'TEACHER', 'Teacher'
-        STUDENT = 'STUDENT', 'Student'
+        ADMIN = 'ADMIN', 'Адміністратор'
+        TEACHER = 'TEACHER', 'Вчитель'
+        STUDENT = 'STUDENT', 'Студент'
 
     role = models.CharField(
         max_length=10,
@@ -21,20 +21,20 @@ class User(AbstractUser):
     )
     email = models.EmailField(unique=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
-    bio = models.TextField(blank=True, null=True, help_text="User's biography or description")
+    bio = models.TextField(blank=True, null=True, help_text="Біографія або опис користувача")
 
     def save(self, *args, **kwargs):
         """
-        Override save method to automatically set is_staff=True for admin users.
+        Перевизначає save для автоматичного встановлення is_staff=True для адміністраторів.
         """
-        # Automatically set is_staff=True for users with ADMIN role
+        # Автоматично встановлює is_staff=True для ADMIN
         if self.role == self.Role.ADMIN:
             self.is_staff = True
         super().save(*args, **kwargs)
 
     def __str__(self):
         """
-        String representation of the user.
+        Текстове представлення користувача.
         """
         return f"{self.username} ({self.get_role_display()})"
 
@@ -43,8 +43,8 @@ class User(AbstractUser):
 
 class Course(models.Model):
     """
-    Model representing a course.
-    A course has a teacher, enrolled students, and can contain assignments.
+    Модель курсу.
+    Курс має вчителя, студентів та може містити завдання.
     """
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -64,7 +64,7 @@ class Course(models.Model):
 
     def __str__(self):
         """
-        String representation of the course.
+        Текстове представлення курсу.
         """
         return self.title
 
@@ -73,22 +73,22 @@ class Course(models.Model):
 
 class Assignment(models.Model):
     """
-    Model representing an assignment within a course.
-    Contains SQL tasks for students to complete.
+    Модель завдання в курсі.
+    Містить SQL-завдання для студентів.
     """
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     title = models.CharField(max_length=200)
     description = models.TextField()
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    schema_script = models.TextField(help_text="SQL to initialize the database")
-    standard_solution = models.TextField(blank=True, null=True, help_text="SQL solution applied by teacher")
+    schema_script = models.TextField(help_text="SQL для ініціалізації бази даних")
+    standard_solution = models.TextField(blank=True, null=True, help_text="SQL-розв'язок від вчителя")
     standard_db_dump = models.FileField(upload_to='task_dumps/', blank=True, null=True)
-    solution_hash = models.CharField(max_length=64, help_text="Hash of the reference solution")
+    solution_hash = models.CharField(max_length=64, help_text="Хеш еталонного розв'язку")
 
     def __str__(self):
         """
-        String representation of the assignment.
+        Текстове представлення завдання.
         """
         return f"{self.title} ({self.course.title})"
 
@@ -97,8 +97,8 @@ class Assignment(models.Model):
 
 class Submission(models.Model):
     """
-    Model representing a student's submission for an assignment.
-    Stores the SQL query, result, and correctness status.
+    Модель відповіді студента на завдання.
+    Зберігає SQL-запит, результат та статус правильності.
     """
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
     student = models.ForeignKey(
@@ -108,14 +108,15 @@ class Submission(models.Model):
         related_name='submissions'
     )
     query = models.TextField()
-    result_json = models.JSONField(null=True)  # Raw query result
+    result_json = models.JSONField(null=True)  # Сирий результат запиту
     is_correct = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    execution_time = models.FloatField(null=True)  # Execution time in seconds
+    execution_time = models.FloatField(null=True)  # Час виконання у секундах
 
     def __str__(self):
         """
-        String representation of the submission.        """
+        Текстове представлення відповіді.
+        """
         return f"Submission by {self.student.username} for {self.assignment.title}"
 
     class Meta:
@@ -123,7 +124,7 @@ class Submission(models.Model):
 
 class TeacherDatabase(models.Model):
     """
-    Represents a SQL database dump uploaded by a teacher.
+    SQL-дамп бази даних, завантажений вчителем.
     """
     name = models.CharField(max_length=100)
     teacher = models.ForeignKey(
@@ -137,12 +138,10 @@ class TeacherDatabase(models.Model):
     def __str__(self):
         return f"{self.name} ({self.teacher.username})"
 
-
 class TemporaryDatabase(models.Model):
     """
-    Represents a temporary PostgreSQL database created for a user session.
-    This database is created when a user selects a teacher database in the SQL editor
-    and is deleted when the user's session ends.
+    Тимчасова база PostgreSQL, створена для сесії користувача.
+    Створюється при виборі бази в редакторі SQL і видаляється після завершення сесії.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='temporary_databases')
     teacher_database = models.ForeignKey(TeacherDatabase, on_delete=models.CASCADE, related_name='temporary_instances')
@@ -157,9 +156,9 @@ class TemporaryDatabase(models.Model):
 class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    # Reference to the original database file (uploaded by teacher)
+    # Оригінальний файл бази (завантажений вчителем)
     original_db = models.FileField(upload_to='task_dumps/')
-    # Reference to the etalon (reference) database file (after teacher manipulations)
+    # Еталонний файл бази (після маніпуляцій вчителя)
     etalon_db = models.FileField(upload_to='task_dumps/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

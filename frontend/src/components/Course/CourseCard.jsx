@@ -25,6 +25,7 @@ export default function CourseCard({ course, onEdit, onDelete }) {
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box>
+            {/* Відображає кількість завдань у курсі */}
             <Chip
               label={`${t('course.tasks')}: ${course.assignments_count || 0}`}
               size="small"
@@ -32,7 +33,8 @@ export default function CourseCard({ course, onEdit, onDelete }) {
             />
           </Box>
           <Box>
-            <IconButton 
+            {/* Кнопка редагування курсу */}
+            <IconButton
               size="small" 
               color="primary" 
               onClick={() => onEdit(course)}
@@ -41,7 +43,8 @@ export default function CourseCard({ course, onEdit, onDelete }) {
             >
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton 
+            {/* Кнопка видалення курсу */}
+            <IconButton
               size="small" 
               color="error" 
               onClick={() => onDelete(course)}
@@ -53,6 +56,7 @@ export default function CourseCard({ course, onEdit, onDelete }) {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Кнопка для переходу до сторінки курсу */}
           <Button
             size="small"
             variant="contained"

@@ -20,7 +20,7 @@ import tempfile
 import uuid
 from .models import Course, Assignment, TeacherDatabase, TemporaryDatabase, SQLHistory
 
-# Type hints for Django models
+# Підказки типів для моделей Django
 Course.objects: Manager
 Assignment.objects: Manager
 
@@ -28,27 +28,27 @@ User = get_user_model()
 
 class UserListView(generics.ListAPIView):
     """
-    API view to retrieve list of all users.
+    API-представлення для отримання списку всіх користувачів.
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 class RegisterView(generics.CreateAPIView):
     """
-    API view for user registration.
+    API-представлення для реєстрації користувача.
     """
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
 class LoginView(TokenObtainPairView):
     """
-    API view for user login with JWT token generation.
+    API-представлення для входу користувача з генерацією JWT токена.
     """
     serializer_class = CustomTokenObtainPairSerializer
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     """
-    API view for retrieving and updating the current user's profile.
+    API-представлення для отримання та оновлення профілю поточного користувача.
     """
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -56,50 +56,50 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         """
-        Return the authenticated user as the object to retrieve or update.
+        Повертає автентифікованого користувача як об'єкт для отримання або оновлення.
         """
         return self.request.user
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing courses.
-    Provides CRUD operations for courses with role-based access control.
+    ViewSet для керування курсами.
+    Надає CRUD-операції для курсів з контролем доступу за ролями.
     """
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
-        Return a queryset of courses filtered based on the user's role.
-        Teachers see only their courses, students see enrolled courses,
-        and admins see all courses.
+        Повертає queryset курсів, відфільтрований за роллю користувача.
+        Вчителі бачать лише свої курси, студенти — лише ті, на які записані,
+        адміністратори — всі курси.
         """
         user = self.request.user
         queryset = Course.objects.annotate(assignments_count=Count('assignments'))
 
-        # If user is a teacher, only show their courses
+        # Якщо користувач — вчитель, показати лише його курси
         if user.role == User.Role.TEACHER:
             return queryset.filter(teacher=user)
-        # If user is a student, show enrolled courses
+        # Якщо користувач — студент, показати курси, на які він записаний
         elif user.role == User.Role.STUDENT:
             return queryset.filter(students=user)
-        # If user is an admin, show all courses
+        # Якщо користувач — адміністратор, показати всі курси
         else:
             return queryset
 
     def perform_create(self, serializer):
         """
-        Ensure only teachers can create courses and set the teacher field.
+        Дозволяє створювати курси лише вчителям та встановлює поле teacher.
         """
         user = self.request.user
         if user.role != User.Role.TEACHER:
-            raise PermissionDenied("Only teachers can create courses")
+            raise PermissionDenied("Тільки вчителі можуть створювати курси")
         serializer.save(teacher=user)
 
     @action(detail=True, methods=['get'])
     def get_assignments(self, request, pk=None):
         """
-        Retrieve all assignments for a specific course.
+        Отримати всі завдання для конкретного курсу.
         """
         course = self.get_object()
         assignments = Assignment.objects.filter(course=course)
@@ -108,13 +108,13 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        Override retrieve method to include assignments in the course details.
+        Перевизначає метод отримання курсу, щоб включити завдання у відповідь.
         """
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
 
-        # Include assignments in the response
+        # Додаємо завдання у відповідь
         assignments = Assignment.objects.filter(course=instance)
         assignment_serializer = AssignmentSerializer(assignments, many=True)
         data['assignments'] = assignment_serializer.data
@@ -124,36 +124,36 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def assignments(self, request, pk=None):
         """
-        Create a new assignment for a specific course.
-        Only the course teacher can create assignments.
+        Створити нове завдання для конкретного курсу.
+        Тільки вчитель курсу може створювати завдання.
         """
         course = self.get_object()
 
-        # Ensure only teachers can create assignments
+        # Дозволяємо створювати завдання лише вчителю курсу
         user = request.user
         if user.role != User.Role.TEACHER or course.teacher != user:
-            raise PermissionDenied("Only the course teacher can create assignments")
+            raise PermissionDenied("Тільки вчитель курсу може створювати завдання")
 
-        # Process the demo_queries and task_queries from the request data
+        # Обробка demo_queries та task_queries з даних запиту
         data = request.data.copy()
 
-        # Add the course to the data
+        # Додаємо курс до даних
         data['course'] = course.id
 
-        # Set default values for schema_script and solution_hash if not provided
+        # Встановлюємо значення за замовчуванням для schema_script та solution_hash, якщо не вказано
         if 'schema_script' not in data:
             data['schema_script'] = ''
         if 'solution_hash' not in data:
             data['solution_hash'] = ''
 
-        # Store the theory field in the description if it exists
+        # Зберігаємо поле theory у description, якщо воно існує
         if 'theory' in data:
             if 'description' in data:
                 data['description'] = f"{data['description']}\n\n{data['theory']}"
             else:
                 data['description'] = data['theory']
 
-        # Create the assignment
+        # Створюємо завдання
         serializer = AssignmentSerializer(data=data)
         if serializer.is_valid():
             assignment = serializer.save()
@@ -162,7 +162,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class TeacherDatabaseViewSet(viewsets.ModelViewSet):
     """
-    ViewSet to allow teachers to upload SQL database dumps.
+    ViewSet для завантаження вчителями дампів SQL-баз даних.
     """
     queryset = TeacherDatabase.objects.all()
     serializer_class = TeacherDatabaseSerializer
@@ -171,7 +171,7 @@ class TeacherDatabaseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Teachers see only their own uploaded databases.
+        Вчителі бачать лише свої завантажені бази даних.
         """
         user = self.request.user
         if user.role == User.Role.TEACHER:
@@ -180,30 +180,30 @@ class TeacherDatabaseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Only teachers can upload SQL dumps.
+        Тільки вчителі можуть завантажувати дампи баз даних.
         """
         user = self.request.user
         if user.role != User.Role.TEACHER:
-            raise PermissionDenied("Only teachers can upload database dumps.")
+            raise PermissionDenied("Тільки вчителі можуть завантажувати дампи баз даних.")
         serializer.save(teacher=user)
 
 class AssignmentViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for viewing assignments.
-    Provides read-only access to assignments.
+    ViewSet для перегляду завдань.
+    Надає лише доступ для читання.
     """
     serializer_class = AssignmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
-        Return all assignments.
+        Повертає всі завдання.
         """
         return Assignment.objects.all()
 
 class TaskViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing tasks. Teachers can create tasks, upload/select a database, and save the etalon (reference) database after manipulations.
+    ViewSet для керування задачами. Вчителі можуть створювати задачі, завантажувати/обирати базу та зберігати еталонну базу після маніпуляцій.
     """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -212,23 +212,23 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         if user.role != User.Role.TEACHER:
-            raise PermissionDenied("Only teachers can create tasks.")
+            raise PermissionDenied("Тільки вчителі можуть створювати задачі.")
         serializer.save()
 
     @action(detail=True, methods=['post'], url_path='save_etalon')
     def save_etalon(self, request, pk=None):
         """
-        Apply teacher's SQL manipulations to a temp copy of the original DB, dump the result, and save as etalon_db.
-        Expects: { "sql": "...teacher's SQL manipulations..." }
+        Застосувати SQL-виконання вчителя до копії оригінальної БД, зробити дамп результату та зберегти як еталонну БД.
+        Очікує: { "sql": "...SQL-виконання вчителя..." }
         """
         from django.core.files import File
         task = self.get_object()
         sql = request.data.get('sql')
         if not sql:
-            return Response({'error': 'No SQL provided.'}, status=400)
+            return Response({'error': 'Не вказано SQL.'}, status=400)
         if not task.original_db:
-            return Response({'error': 'No original DB file attached to this task.'}, status=400)
-        # Create a temp DB and apply the original dump
+            return Response({'error': 'До цієї задачі не прикріплено оригінальний файл БД.'}, status=400)
+        # Створити тимчасову БД та застосувати оригінальний дамп
         db_config = settings.DATABASES['default']
         temp_db_name = f"etalon_db_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(
@@ -245,12 +245,12 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
             temp_conn.autocommit = True
             temp_cursor = temp_conn.cursor()
-            # Load original DB dump
+            # Завантажити оригінальний дамп БД
             with open(task.original_db.path, 'r') as f:
                 temp_cursor.execute(f.read())
-            # Apply teacher's SQL
+            # Застосувати SQL вчителя
             temp_cursor.execute(sql)
-            # Dump resulting DB to a temp file
+            # Зробити дамп результату у тимчасовий файл
             with tempfile.NamedTemporaryFile(suffix='.sql', delete=False) as tmpfile:
                 dump_cmd = f"pg_dump -U {db_config['USER']} -h {db_config['HOST']} -p {db_config['PORT']} {temp_db_name} > {tmpfile.name}"
                 os.system(dump_cmd)
@@ -266,21 +266,21 @@ class TaskViewSet(viewsets.ModelViewSet):
                 pass
             admin_cursor.close()
             admin_conn.close()
-        return Response({'status': 'Etalon DB saved.'})
+        return Response({'status': 'Еталонну БД збережено.'})
 
     @action(detail=True, methods=['post'], url_path='submit', permission_classes=[permissions.IsAuthenticated])
     def submit(self, request, pk=None):
         """
-        Student submits SQL. Apply to fresh copy of original_db, compare with etalon_db.
-        Returns: {correct: bool, error: str}
+        Студент надсилає SQL. Застосовується до копії original_db, порівнюється з etalon_db.
+        Повертає: {correct: bool, error: str}
         """
         sql = request.data.get('sql')
         if not sql:
-            return Response({'error': 'No SQL provided.'}, status=400)
+            return Response({'error': 'Не вказано SQL.'}, status=400)
         task = self.get_object()
         if not task.original_db or not task.etalon_db:
-            return Response({'error': 'Task is not fully set up.'}, status=400)
-        db_config = settings.DATABASES['default']
+            return Response({'error': 'Задача налаштована не повністю.'}, status=400)
+        db_config = settings.DATABASEС['default']
         temp_db_name = f"student_db_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],
@@ -296,22 +296,22 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
             temp_conn.autocommit = True
             temp_cursor = temp_conn.cursor()
-            # Load original DB dump
+            # Завантажити оригінальний дамп БД
             with open(task.original_db.path, 'r') as f:
                 temp_cursor.execute(f.read())
-            # Apply student's SQL
+            # Застосувати SQL студента
             try:
                 temp_cursor.execute(sql)
             except Exception as e:
                 temp_cursor.close()
                 temp_conn.close()
                 raise e
-            # Dump resulting DB to a temp file
+            # Зробити дамп результату у тимчасовий файл
             with tempfile.NamedTemporaryFile(suffix='.sql', delete=False) as tmpfile:
                 dump_cmd = f"pg_dump -U {db_config['USER']} -h {db_config['HOST']} -p {db_config['PORT']} {temp_db_name} > {tmpfile.name}"
                 os.system(dump_cmd)
                 tmpfile.flush()
-                # Compare with etalon
+                # Порівняти з еталоном
                 with open(tmpfile.name, 'rb') as student_dump, open(task.etalon_db.path, 'rb') as etalon_dump:
                     student_data = student_dump.read()
                     etalon_data = etalon_dump.read()
@@ -338,43 +338,43 @@ class TaskViewSet(viewsets.ModelViewSet):
 @permission_classes([permissions.IsAuthenticated])
 def execute_sql_query(request):
     """
-    Execute a SQL query on a specified database.
+    Виконати SQL-запит у вибраній базі даних.
 
-    Request body should contain:
-    - query: SQL query to execute
-    - database_id: ID of the TeacherDatabase to use (optional)
+    Тіло запиту має містити:
+    - query: SQL-запит для виконання
+    - database_id: ID TeacherDatabase (необов'язково)
 
-    Returns:
-    - results: Query results as a list of dictionaries
-    - columns: Column names
-    - error: Error message if query fails
+    Повертає:
+    - results: результати запиту як список словників
+    - columns: імена колонок
+    - error: повідомлення про помилку, якщо запит не виконано
     """
     query = request.data.get('query')
     database_id = request.data.get('database_id')
 
     if not query:
-        return Response({'error': 'No query provided'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Не вказано запит'}, status=status.HTTP_400_BAD_REQUEST)
     if not database_id:
-        return Response({'error': 'Please select a database before running queries.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Оберіть базу даних перед виконанням запитів.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Всегда используем временную базу для пользователя и сессии
+        # Завжди використовуємо тимчасову базу для користувача та сесії
         session_key = request.session.session_key
         if not session_key:
             request.session.save()
             session_key = request.session.session_key
 
-        # Если указан database_id, используем соответствующий дамп, иначе - пустой дамп
+        # Якщо вказано database_id, використовуємо відповідний дамп, інакше — порожній дамп
         teacher_db = None
         sql_dump_path = None
         if database_id:
             teacher_db = TeacherDatabase.objects.get(id=database_id)
             sql_dump_path = teacher_db.sql_dump.path
         else:
-            # Путь к дефолтному пустому дампу (создайте такой файл заранее)
+            # Шлях до дефолтного порожнього дампу (створіть такий файл заздалегідь)
             sql_dump_path = os.path.join(settings.BASE_DIR, 'sample_database.sql')
 
-        # Проверяем, есть ли временная база для пользователя и сессии (и выбранной teacher_db, если есть)
+        # Перевіряємо, чи є тимчасова база для користувача, сесії та teacher_db (якщо є)
         print(f"[execute_sql_query] user={request.user.id}, session_key={session_key}, database_id={database_id}")
         temp_db = None
         try:
@@ -384,11 +384,11 @@ def execute_sql_query(request):
                 session_key=session_key
             )
             db_name = temp_db.database_name
-            print(f"[execute_sql_query] FOUND temp_db: id={temp_db.id}, db_name={db_name}, teacher_db={teacher_db.id if teacher_db else None}")
+            print(f"[execute_sql_query] ЗНАЙДЕНО temp_db: id={temp_db.id}, db_name={db_name}, teacher_db={teacher_db.id if teacher_db else None}")
             temp_db.save(update_fields=["last_used"])
         except TemporaryDatabase.DoesNotExist:
-            print(f"[execute_sql_query] NOT FOUND temp_db, will create new for user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
-            db_config = settings.DATABASES['default']
+            print(f"[execute_sql_query] НЕ ЗНАЙДЕНО temp_db, створюємо нову для user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
+            db_config = settings.DATABASEС['default']
             admin_conn = psycopg2.connect(
                 dbname=db_config['NAME'],
                 user=db_config['USER'],
@@ -432,7 +432,7 @@ def execute_sql_query(request):
             admin_cursor.close()
             admin_conn.close()
 
-        db_config = settings.DATABASES['default']
+        db_config = settings.DATABASEС['default']
         conn = psycopg2.connect(
             dbname=db_name,
             user=db_config['USER'],
@@ -440,7 +440,7 @@ def execute_sql_query(request):
             host=db_config['HOST'],
             port=db_config['PORT']
         )
-        conn.autocommit = True  # Гарантируем применение DDL сразу
+        conn.autocommit = True  # Гарантуємо застосування DDL одразу
         cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute(query)
         print(f"[execute_sql_query][SQL] {query}")
@@ -469,7 +469,7 @@ def execute_sql_query(request):
 @permission_classes([permissions.IsAuthenticated])
 def get_database_schema(request, database_id):
     """
-    Get the schema of a specified database or the user's temporary database if database_id == 'temporary'.
+    Отримати схему вказаної бази даних або тимчасової бази користувача, якщо database_id == 'temporary'.
     """
     try:
         if (database_id == 'temporary'):
@@ -483,34 +483,34 @@ def get_database_schema(request, database_id):
                 try:
                     teacher_db = TeacherDatabase.objects.get(id=teacher_db_id)
                 except TeacherDatabase.DoesNotExist:
-                    return Response({'error': 'Teacher database not found'}, status=status.HTTP_404_NOT_FOUND)
+                    return Response({'error': 'Teacher database не знайдено'}, status=status.HTTP_404_NOT_FOUND)
             print(f"[get_database_schema] user={request.user.id}, session_key={session_key}, teacher_db={teacher_db.id if teacher_db else None}")
             temp_db = TemporaryDatabase.objects.filter(user=request.user, session_key=session_key, teacher_database=teacher_db).order_by('-id').first()
             if temp_db:
-                print(f"[get_database_schema] FOUND temp_db: id={temp_db.id}, db_name={temp_db.database_name}")
+                print(f"[get_database_schema] ЗНАЙДЕНО temp_db: id={temp_db.id}, db_name={temp_db.database_name}")
             else:
-                print(f"[get_database_schema] NOT FOUND temp_db for user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
+                print(f"[get_database_schema] НЕ ЗНАЙДЕНО temp_db для user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
             if not temp_db:
-                return Response({'error': 'Temporary database not found'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Тимчасову базу не знайдено'}, status=status.HTTP_404_NOT_FOUND)
             db_name = temp_db.database_name
         else:
             teacher_db = TeacherDatabase.objects.get(id=database_id)
 
-            # Check permissions - only the teacher who uploaded the database or admin can view its schema
+            # Перевірка прав — лише вчитель, який завантажив базу, або адміністратор може переглядати схему
             if request.user.role != User.Role.ADMIN and teacher_db.teacher != request.user:
                 return Response(
-                    {'error': 'You do not have permission to view this database'},
-                    status=status.HTTP_403_FORBIDDEN
+                    {'error': 'Ви не маєте прав для перегляду цієї бази'},
+                    status=status.HTTP_403_FORБIDDEN
                 )
 
-            # Get the session key
+            # Отримати session_key
             session_key = request.session.session_key
             if not session_key:
-                # Create a new session if one doesn't exist
+                # Створити нову сесію, якщо її не існує
                 request.session.save()
                 session_key = request.session.session_key
 
-            # Check if a temporary database already exists for this user and teacher database
+            # Перевірити, чи існує тимчасова база для цього користувача та teacher_db
             db_name = None
             try:
                 temp_db = TemporaryDatabase.objects.get(
@@ -518,11 +518,11 @@ def get_database_schema(request, database_id):
                     teacher_database=teacher_db,
                     session_key=session_key
                 )
-                # Use the existing temporary database
+                # Використати існуючу тимчасову базу
                 db_name = temp_db.database_name
             except TemporaryDatabase.DoesNotExist:
-                # Create a new temporary database
-                db_config = settings.DATABASES['default']
+                # Створити нову тимчасову базу
+                db_config = settings.DATABASEС['default']
                 admin_conn = psycopg2.connect(
                     dbname=db_config['NAME'],
                     user=db_config['USER'],
@@ -530,17 +530,17 @@ def get_database_schema(request, database_id):
                     host=db_config['HOST'],
                     port=db_config['PORT']
                 )
-                admin_conn.autocommit = True  # Required for CREATE DATABASE
+                admin_conn.autocommit = True  # Потрібно для CREATE DATABASE
                 admin_cursor = admin_conn.cursor()
 
-                # Generate a unique database name
+                # Згенерувати унікальне ім'я бази
                 db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
 
                 try:
-                    # Create the database
+                    # Створити базу
                     admin_cursor.execute(f"CREATE DATABASE {db_name}")
 
-                    # Create a new connection to the temporary database
+                    # Створити нове з'єднання з тимчасовою базою
                     temp_conn = psycopg2.connect(
                         dbname=db_name,
                         user=db_config['USER'],
@@ -551,16 +551,16 @@ def get_database_schema(request, database_id):
                     temp_conn.autocommit = True
                     temp_cursor = temp_conn.cursor()
 
-                    # Execute the SQL dump to populate the database
+                    # Виконати SQL-дамп для наповнення бази
                     with open(teacher_db.sql_dump.path, 'r') as f:
                         sql_dump = f.read()
                         temp_cursor.execute(sql_dump)
 
-                    # Close the temporary connection
+                    # Закрити тимчасове з'єднання
                     temp_cursor.close()
                     temp_conn.close()
 
-                    # Create a record of the temporary database
+                    # Створити запис про тимчасову базу
                     temp_db = TemporaryDatabase.objects.create(
                         user=request.user,
                         teacher_database=teacher_db,
@@ -568,7 +568,7 @@ def get_database_schema(request, database_id):
                         session_key=session_key
                     )
                 except Exception as e:
-                    # If anything goes wrong, drop the database if it was created
+                    # Якщо щось пішло не так, видалити базу, якщо вона була створена
                     try:
                         admin_cursor.execute(f"DROP DATABASE IF EXISTS {db_name}")
                     except:
@@ -577,13 +577,13 @@ def get_database_schema(request, database_id):
                     admin_conn.close()
                     raise e
 
-                # Close the admin connection
+                # Закрити з'єднання адміністратора
                 admin_cursor.close()
                 admin_conn.close()
 
         try:
-            # Connect to the temporary database
-            db_config = settings.DATABASES['default']
+            # Підключитися до тимчасової бази
+            db_config = settings.DATABASEС['default']
             conn = psycopg2.connect(
                 dbname=db_name,
                 user=db_config['USER'],
@@ -592,10 +592,10 @@ def get_database_schema(request, database_id):
                 port=db_config['PORT']
             )
 
-            # Create a cursor with dictionary-like results
+            # Створити курсор з результатами у вигляді словника
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-            # Get list of tables from PostgreSQL's information_schema
+            # Отримати список таблиць з information_schema PostgreSQL
             cursor.execute("""
                 SELECT table_name 
                 FROM information_schema.tables 
@@ -604,7 +604,7 @@ def get_database_schema(request, database_id):
             """)
             tables = [row['table_name'] for row in cursor.fetchall()]
 
-            # Get columns for each table
+            # Отримати колонки для кожної таблиці
             schema = {}
             for table in tables:
                 cursor.execute("""
@@ -636,7 +636,7 @@ def get_database_schema(request, database_id):
                 ]
                 schema[table] = columns
 
-            # Close connection
+            # Закрити з'єднання
             cursor.close()
             conn.close()
 
@@ -647,28 +647,28 @@ def get_database_schema(request, database_id):
 
         except psycopg2.Error as e:
             return Response(
-                {'error': f'PostgreSQL error: {str(e)}'}, 
+                {'error': f'Помилка PostgreSQL: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     except TeacherDatabase.DoesNotExist:
         return Response(
-            {'error': 'Database not found'}, 
+            {'error': 'Базу даних не знайдено'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        return Response({'error': f'Unexpected error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Неочікувана помилка: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def delete_temp_database(request):
     """
-    Удалить временную базу пользователя для выбранной teacher_database и session_key.
-    Тело запроса: { database_id }
+    Видалити тимчасову базу користувача для вибраної teacher_database та session_key.
+    Тіло запиту: { database_id }
     """
     database_id = request.data.get('database_id')
     if not database_id:
-        return Response({'error': 'No database_id provided'}, status=400)
+        return Response({'error': 'Не вказано database_id'}, status=400)
     try:
         teacher_db = TeacherDatabase.objects.get(id=database_id)
         session_key = request.session.session_key
@@ -680,8 +680,8 @@ def delete_temp_database(request):
             teacher_database=teacher_db,
             session_key=session_key
         )
-        # Drop the actual PostgreSQL database
-        db_config = settings.DATABASES['default']
+        # Видалити саму базу PostgreSQL
+        db_config = settings.DATABASEС['default']
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'],
             user=db_config['USER'],
@@ -698,11 +698,11 @@ def delete_temp_database(request):
         admin_cursor.close()
         admin_conn.close()
         temp_db.delete()
-        return Response({'status': 'Temporary database deleted'})
+        return Response({'status': 'Тимчасову базу видалено'})
     except TeacherDatabase.DoesNotExist:
-        return Response({'error': 'Database not found'}, status=404)
+        return Response({'error': 'Базу даних не знайдено'}, status=404)
     except TemporaryDatabase.DoesNotExist:
-        return Response({'error': 'Temporary database not found'}, status=404)
+        return Response({'error': 'Тимчасову базу не знайдено'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
 
@@ -710,7 +710,7 @@ def delete_temp_database(request):
 @permission_classes([permissions.IsAuthenticated])
 def sql_history(request):
     """
-    Возвращает историю SQL-запросов пользователя (последние 50).
+    Повертає історію SQL-запитів користувача (останні 50).
     """
     history = SQLHistory.objects.filter(user=request.user).order_by('-executed_at')[:50]
     data = [
@@ -723,3 +723,4 @@ def sql_history(request):
         for h in history
     ]
     return Response({'history': data})
+

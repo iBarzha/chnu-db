@@ -22,6 +22,7 @@ export default function TeacherDatabaseUploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  // Обробка відправки форми завантаження бази даних
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -29,7 +30,7 @@ export default function TeacherDatabaseUploadPage() {
     setIsSubmitting(true);
 
     if (!name || !file) {
-      setError('Name and file are required.');
+      setError('Потрібно вказати назву та файл.');
       setIsSubmitting(false);
       return;
     }
@@ -47,8 +48,8 @@ export default function TeacherDatabaseUploadPage() {
       setSuccess(true);
       setTimeout(() => navigate('/courses'), 1500);
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err.response?.data?.detail || 'Upload failed');
+      console.error('Помилка завантаження:', err);
+      setError(err.response?.data?.detail || 'Завантаження не вдалося');
     } finally {
       setIsSubmitting(false);
     }

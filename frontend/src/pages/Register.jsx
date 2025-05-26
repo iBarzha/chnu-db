@@ -17,6 +17,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Валідація форми при сабміті
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -39,6 +40,7 @@ export default function Register() {
         )}
 
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+          {/* Поле для імені користувача */}
           <TextField
             label={t('common.username')}
             fullWidth
@@ -48,6 +50,7 @@ export default function Register() {
             required
           />
 
+          {/* Поле для email */}
           <TextField
             label={t('common.email')}
             type="email"
@@ -58,6 +61,7 @@ export default function Register() {
             required
           />
 
+          {/* Поле для пароля */}
           <TextField
             label={t('common.password')}
             type="password"

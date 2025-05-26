@@ -19,19 +19,19 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Function to handle external links
+  // Функція для відкриття зовнішніх посилань
   const handleExternalLink = (url) => {
     window.open(url, '_blank');
   };
 
-  // Define menu items based on user role
+  // Визначення пунктів меню залежно від ролі користувача
   const menuItems = [
-    // Common items for all users
+    // Загальні пункти для всіх користувачів
     { text: t('common.dashboard'), icon: <DashboardIcon />, path: '/dashboard' },
     { text: t('sidebar.profile'), icon: <ProfileIcon />, path: '/profile' },
     { text: t('sidebar.courses'), icon: <CoursesIcon />, path: '/courses' },
 
-    // Role-specific items
+    // Пункти для конкретних ролей
     ...(user?.role === 'STUDENT' ? [
       { text: t('sidebar.myTasks'), icon: <StudentIcon />, path: '/tasks' },
       { text: t('sidebar.sqlEditor'), icon: <CodeIcon />, path: '/sql-editor' }
@@ -49,7 +49,7 @@ export default function Sidebar() {
     ] : [])
   ];
 
-  // Admin-specific external links
+  // Зовнішні посилання для адміністратора
   const adminExternalLinks = user?.role === 'ADMIN' ? [
     { text: t('sidebar.adminPanel'), icon: <SettingsIcon />, url: 'http://localhost:8000/admin/' }
   ] : [];
@@ -63,7 +63,7 @@ export default function Sidebar() {
         [`& .MuiDrawer-paper`]: {
           width: 240,
           boxSizing: 'border-box',
-          top: 64, // высота AppBar
+          top: 64, // висота AppBar
           height: 'calc(100vh - 64px)',
         },
       }}

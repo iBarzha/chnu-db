@@ -48,6 +48,7 @@ export default function CoursesPage() {
       });
   }, []);
 
+  // Отримання списку курсів при монтуванні компонента
   useEffect(() => {
     fetchCourses();
   }, [fetchCourses]);
@@ -181,11 +182,12 @@ export default function CoursesPage() {
         ))}
       </Grid>
 
-      {/* Edit Course Dialog */}
+      {/* Діалог редагування курсу */}
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t('course.editCourse')}</DialogTitle>
         <form onSubmit={editFormik.handleSubmit}>
           <DialogContent>
+            {/* Поле для назви курсу */}
             <TextField
               fullWidth
               margin="normal"
@@ -196,6 +198,7 @@ export default function CoursesPage() {
               error={editFormik.touched.title && Boolean(editFormik.errors.title)}
               helperText={editFormik.touched.title && editFormik.errors.title}
             />
+            {/* Поле для опису курсу */}
             <TextField
               fullWidth
               margin="normal"
@@ -216,7 +219,7 @@ export default function CoursesPage() {
         </form>
       </Dialog>
 
-      {/* Delete Course Dialog */}
+      {/* Діалог видалення курсу */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>{t('course.deleteCourse')}</DialogTitle>
         <DialogContent>
@@ -232,11 +235,12 @@ export default function CoursesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Create Task Dialog */}
+      {/* Діалог створення завдання */}
       <Dialog open={openTaskDialog} onClose={() => setOpenTaskDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t('course.createTask')}</DialogTitle>
         <form onSubmit={taskFormik.handleSubmit}>
           <DialogContent>
+            {/* Поля для створення завдання */}
             <TextField
               fullWidth
               margin="normal"
@@ -259,6 +263,7 @@ export default function CoursesPage() {
               error={taskFormik.touched.description && Boolean(taskFormik.errors.description)}
               helperText={taskFormik.touched.description && taskFormik.errors.description}
             />
+            {/* Дата дедлайну для завдання */}
             <TextField
               fullWidth
               margin="normal"
@@ -281,11 +286,12 @@ export default function CoursesPage() {
         </form>
       </Dialog>
 
-      {/* Create Course Dialog */}
+      {/* Діалог створення курсу */}
       <Dialog open={openCreateCourseDialog} onClose={() => setOpenCreateCourseDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t('sidebar.createCourse')}</DialogTitle>
         <form onSubmit={createCourseFormik.handleSubmit}>
           <DialogContent>
+            {/* Поля для створення курсу */}
             <TextField
               fullWidth
               margin="normal"
@@ -316,7 +322,7 @@ export default function CoursesPage() {
         </form>
       </Dialog>
 
-      {/* Notification Snackbar */}
+      {/* Сповіщення (Snackbar) */}
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}

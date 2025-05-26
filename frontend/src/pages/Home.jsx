@@ -1,4 +1,3 @@
-// pages/Home.jsx
 import { Container, Box, Typography, Button, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,6 +18,7 @@ export default function Home() {
           {t('home.subtitle')}
         </Typography>
 
+        {/* Кнопки для входу та реєстрації для неавторизованих користувачів */}
         {!user && (
           <Box sx={{ mb: 4 }}>
             <Button
@@ -40,6 +40,7 @@ export default function Home() {
         )}
       </Box>
 
+      {/* Кнопка переходу до дашборду для авторизованих користувачів */}
       {user ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
           <Button

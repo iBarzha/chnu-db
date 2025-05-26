@@ -1,9 +1,9 @@
 """
-ASGI config for backend project.
+ASGI конфігурація для проєкту backend.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
+Вона експортує ASGI callable як змінну модуля з назвою ``application``.
 
-For more information on this file, see
+Детальніше про цей файл дивіться:
 https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 

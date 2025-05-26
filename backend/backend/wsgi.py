@@ -1,9 +1,9 @@
 """
-WSGI config for backend project.
+WSGI конфігурація для проєкту backend.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
+Вона експортує WSGI callable як змінну модуля з назвою ``application``.
 
-For more information on this file, see
+Детальніше про цей файл дивіться:
 https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 

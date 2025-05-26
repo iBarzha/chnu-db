@@ -16,6 +16,7 @@ export default function TaskDetailPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Завантаження завдання при монтуванні компонента
   useEffect(() => {
     if (id) {
       setLoading(true);
@@ -32,6 +33,7 @@ export default function TaskDetailPage() {
     }
   }, [id, t]);
 
+  // Повернення до курсу або списку курсів
   const handleBack = () => {
     if (task && task.course) {
       navigate(`/courses/${task.course}`);
@@ -40,6 +42,7 @@ export default function TaskDetailPage() {
     }
   };
 
+  // Відправка SQL-відповіді студента
   const handleSubmitSql = async () => {
     setSubmitting(true);
     setSubmitResult(null);
@@ -125,6 +128,7 @@ export default function TaskDetailPage() {
             {submitting ? 'Submitting...' : 'Submit Solution'}
           </Button>
         </Box>
+        {/* Відображення результату перевірки SQL-відповіді */}
         {submitResult && (
           <Box sx={{ mt: 2 }}>
             {submitResult.correct ? (

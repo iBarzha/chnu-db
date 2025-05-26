@@ -8,7 +8,7 @@ export default function Dashboard() {
     const [greeting, setGreeting] = useState('');
     const { t } = useTranslation();
 
-    // Get role display name
+    // Відображення повідомлення про роль користувача
     const getRoleDisplay = (role) => {
         switch(role) {
             case 'ADMIN':
@@ -22,7 +22,7 @@ export default function Dashboard() {
         }
     };
 
-    // Set greeting based on time of day
+    // Встановлення привітання залежно від часу доби
     useEffect(() => {
         const hour = new Date().getHours();
         if (hour < 12) {
@@ -55,7 +55,7 @@ export default function Dashboard() {
                 </Typography>
 
                 <Grid container spacing={3} sx={{ mt: 2 }}>
-                    {/* Dashboard content can be added here based on user role */}
+                    {/* Контент дашборду можна додати тут залежно від ролі користувача */}
                     <Grid item xs={12}>
                         <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
                             <Typography variant="h6" gutterBottom>

@@ -11,25 +11,25 @@ import TeacherDatabaseListPage from "./pages/TeacherDatabaseListPage";
 import SqlEditorPage from "./pages/SqlEditorPage";
 import ProfilePage from "./pages/ProfilePage";
 
-// Lazy-loaded components for better performance
+// Ліниве завантаження компонентів для кращої продуктивності
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Home = lazy(() => import('./pages/Home'));
 const Layout = lazy(() => import('./components/Layout/Layout'));
 
-// Loading component for suspense fallback
+// Компонент-завантажувач для Suspense fallback
 const LoadingFallback = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
     <CircularProgress />
   </Box>
 );
 
-// Protected route - only for authenticated users
+// Захищений маршрут — лише для автентифікованих користувачів
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
-  // Show loading indicator while checking authentication
+  // Показати індикатор завантаження під час перевірки автентифікації
   if (loading) {
     return <LoadingFallback />;
   }
@@ -37,11 +37,11 @@ const ProtectedRoute = () => {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// Guest route - only for non-authenticated users
+// Гостьовий маршрут — лише для неавторизованих користувачів
 const GuestRoute = () => {
   const { user, loading } = useAuth();
 
-  // Show loading indicator while checking authentication
+  // Показати індикатор завантаження під час перевірки автентифікації
   if (loading) {
     return <LoadingFallback />;
   }
@@ -55,16 +55,16 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            {/* Public routes */}
+            {/* Публічні маршрути */}
             <Route path="/" element={<Home />} />
 
-            {/* Guest routes */}
+            {/* Гостьові маршрути */}
             <Route element={<GuestRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
             </Route>
 
-            {/* Protected routes */}
+            {/* Захищені маршрути */}
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -80,7 +80,7 @@ export default function App() {
               </Route>
             </Route>
 
-            {/* 404 - Not Found */}
+            {/* 404 - Не знайдено */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

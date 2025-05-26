@@ -17,20 +17,21 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
 
+  // Отримати дані курсу та завдання
   const fetchCourse = useCallback(() => {
     if (id) {
       setLoading(true);
       api.get(`/api/courses/${id}/`)
         .then(res => {
           setCourse(res.data);
-          // Use assignments from the course details response if available
+          // Використовуємо завдання з відповіді, якщо вони є
           if (res.data.assignments) {
             setAssignments(res.data.assignments);
           }
           setLoading(false);
         })
         .catch(err => {
-          console.error('Error fetching course:', err);
+          console.error('Помилка отримання курсу:', err);
           setLoading(false);
         });
     }
@@ -40,6 +41,7 @@ export default function CourseDetailPage() {
     fetchCourse();
   }, [fetchCourse]);
 
+  // Перехід до сторінки створення завдання
   const handleOpenTaskDialog = () => {
     navigate(`/courses/${id}/create-task`);
   };
@@ -70,11 +72,13 @@ export default function CourseDetailPage() {
         <Tab label={t('course.members')} />
       </Tabs>
 
+      {/* Відображення вкладок */}
       {tab === 0 && <AssignmentList courseId={id} assignments={assignments} />}
       {tab === 1 && <CourseMaterials courseId={id} />}
       {tab === 2 && (
         <Box sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
+            {/* Тут буде відображено учасників курсу */}
             Course members will be displayed here.
           </Typography>
         </Box>
