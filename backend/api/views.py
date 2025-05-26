@@ -6,23 +6,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Manager
-from django.db import connection
-import json
 import os
 import psycopg2
 import psycopg2.extras
 from django.conf import settings
-from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserSerializer, CourseSerializer, AssignmentSerializer, TeacherDatabaseSerializer
-from .models import Course, Assignment, TeacherDatabase, TemporaryDatabase
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserSerializer, CourseSerializer, TeacherDatabaseSerializer
 from .models import Task
 from .serializers import TaskSerializer
 import tempfile
 import uuid
-from .models import Course, Assignment, TeacherDatabase, TemporaryDatabase, SQLHistory
+from .models import Course, TeacherDatabase, TemporaryDatabase, SQLHistory
 
 # Підказки типів для моделей Django
 Course.objects: Manager
-Assignment.objects: Manager
 
 User = get_user_model()
 
@@ -69,96 +65,20 @@ class CourseViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """
-        Повертає queryset курсів, відфільтрований за роллю користувача.
-        Вчителі бачать лише свої курси, студенти — лише ті, на які записані,
-        адміністратори — всі курси.
-        """
         user = self.request.user
-        queryset = Course.objects.annotate(assignments_count=Count('assignments'))
-
-        # Якщо користувач — вчитель, показати лише його курси
+        queryset = Course.objects.all()
         if user.role == User.Role.TEACHER:
             return queryset.filter(teacher=user)
-        # Якщо користувач — студент, показати курси, на які він записаний
         elif user.role == User.Role.STUDENT:
             return queryset.filter(students=user)
-        # Якщо користувач — адміністратор, показати всі курси
         else:
             return queryset
 
     def perform_create(self, serializer):
-        """
-        Дозволяє створювати курси лише вчителям та встановлює поле teacher.
-        """
         user = self.request.user
         if user.role != User.Role.TEACHER:
             raise PermissionDenied("Тільки вчителі можуть створювати курси")
         serializer.save(teacher=user)
-
-    @action(detail=True, methods=['get'])
-    def get_assignments(self, request, pk=None):
-        """
-        Отримати всі завдання для конкретного курсу.
-        """
-        course = self.get_object()
-        assignments = Assignment.objects.filter(course=course)
-        serializer = AssignmentSerializer(assignments, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Перевизначає метод отримання курсу, щоб включити завдання у відповідь.
-        """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        data = serializer.data
-
-        # Додаємо завдання у відповідь
-        assignments = Assignment.objects.filter(course=instance)
-        assignment_serializer = AssignmentSerializer(assignments, many=True)
-        data['assignments'] = assignment_serializer.data
-
-        return Response(data)
-
-    @action(detail=True, methods=['post'])
-    def assignments(self, request, pk=None):
-        """
-        Створити нове завдання для конкретного курсу.
-        Тільки вчитель курсу може створювати завдання.
-        """
-        course = self.get_object()
-
-        # Дозволяємо створювати завдання лише вчителю курсу
-        user = request.user
-        if user.role != User.Role.TEACHER or course.teacher != user:
-            raise PermissionDenied("Тільки вчитель курсу може створювати завдання")
-
-        # Обробка demo_queries та task_queries з даних запиту
-        data = request.data.copy()
-
-        # Додаємо курс до даних
-        data['course'] = course.id
-
-        # Встановлюємо значення за замовчуванням для schema_script та solution_hash, якщо не вказано
-        if 'schema_script' not in data:
-            data['schema_script'] = ''
-        if 'solution_hash' not in data:
-            data['solution_hash'] = ''
-
-        # Зберігаємо поле theory у description, якщо воно існує
-        if 'theory' in data:
-            if 'description' in data:
-                data['description'] = f"{data['description']}\n\n{data['theory']}"
-            else:
-                data['description'] = data['theory']
-
-        # Створюємо завдання
-        serializer = AssignmentSerializer(data=data)
-        if serializer.is_valid():
-            assignment = serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
 
 class TeacherDatabaseViewSet(viewsets.ModelViewSet):
     """
@@ -186,20 +106,6 @@ class TeacherDatabaseViewSet(viewsets.ModelViewSet):
         if user.role != User.Role.TEACHER:
             raise PermissionDenied("Тільки вчителі можуть завантажувати дампи баз даних.")
         serializer.save(teacher=user)
-
-class AssignmentViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet для перегляду завдань.
-    Надає лише доступ для читання.
-    """
-    serializer_class = AssignmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        """
-        Повертає всі завдання.
-        """
-        return Assignment.objects.all()
 
 class TaskViewSet(viewsets.ModelViewSet):
     """
@@ -229,7 +135,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         if not task.original_db:
             return Response({'error': 'До цієї задачі не прикріплено оригінальний файл БД.'}, status=400)
         # Створити тимчасову БД та застосувати оригінальний дамп
-        db_config = settings.DATABASES['default']
+        db_config = settings.DATABASEС['default']
         temp_db_name = f"etalon_db_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],

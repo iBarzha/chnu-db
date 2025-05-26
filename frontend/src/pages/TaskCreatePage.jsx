@@ -13,6 +13,7 @@ const validationSchema = Yup.object({
   description: Yup.string().required('Description is required'),
   due_date: Yup.date().nullable(),
   teacher_database: Yup.string().required('Database selection is required'),
+  reference_database: Yup.string().required('Reference database selection is required'),
 });
 
 export default function TaskCreatePage() {
@@ -57,7 +58,8 @@ export default function TaskCreatePage() {
       title: '',
       description: '',
       due_date: null,
-      teacher_database: ''
+      teacher_database: '',
+      reference_database: ''
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -73,6 +75,12 @@ export default function TaskCreatePage() {
           throw new Error('Selected database has no SQL dump file');
         }
 
+        // Get the reference database
+        const referenceDb = await api.get(`/api/teacher-databases/${values.reference_database}/`);
+        if (!referenceDb.data.sql_dump) {
+          throw new Error('Reference database has no SQL dump file');
+        }
+
         // Create form data
         const formData = new FormData();
         formData.append('title', values.title);
@@ -80,11 +88,17 @@ export default function TaskCreatePage() {
         if (values.due_date) {
           formData.append('due_date', values.due_date);
         }
+        formData.append('course', courseId); // Привязка таска к курсу
 
         // Fetch the SQL dump file and attach it as original_db
         const response = await fetch(selectedDb.data.sql_dump);
         const blob = await response.blob();
         formData.append('original_db', blob, 'database.sql');
+
+        // Fetch the reference SQL dump and attach as reference_db
+        const refResponse = await fetch(referenceDb.data.sql_dump);
+        const refBlob = await refResponse.blob();
+        formData.append('reference_db', refBlob, 'reference_database.sql');
 
         console.log('Submitting task data:', values);
         const taskResponse = await api.post('/api/tasks/', formData, {
@@ -180,6 +194,23 @@ export default function TaskCreatePage() {
               value={formik.values.teacher_database}
               onChange={formik.handleChange}
               label={t('task.selectDatabase')}
+            >
+              {databases.map(db => (
+                <MenuItem key={db.id} value={db.id}>
+                  {db.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Вибір бази даних для еталонного рішення */}
+          <FormControl fullWidth sx={{ mb: 3 }} error={formik.touched.reference_database && Boolean(formik.errors.reference_database)}>
+            <InputLabel>{t('task.selectReferenceDatabase')}</InputLabel>
+            <Select
+              name="reference_database"
+              value={formik.values.reference_database}
+              onChange={formik.handleChange}
+              label={t('task.selectReferenceDatabase')}
             >
               {databases.map(db => (
                 <MenuItem key={db.id} value={db.id}>

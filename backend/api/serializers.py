@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import Course, Assignment, TeacherDatabase, Task
+from .models import Course, TeacherDatabase, Task
 
 User = get_user_model()
 
@@ -91,19 +91,6 @@ class CourseSerializer(serializers.ModelSerializer):
         validated_data['teacher'] = self.context['request'].user
         return super().create(validated_data)
 
-class AssignmentSerializer(serializers.ModelSerializer):
-    """
-    Сериалізатор для моделі Assignment.
-    Обробляє створення та отримання завдань.
-    """
-    schema_script = serializers.CharField(required=False, default='')
-    solution_hash = serializers.CharField(required=False, default='')
-
-    class Meta:
-        model = Assignment
-        fields = ['id', 'course', 'title', 'description', 'due_date', 'created_at', 'schema_script', 'solution_hash']
-        read_only_fields = ['id', 'created_at']
-
 class TeacherDatabaseSerializer(serializers.ModelSerializer):
     """
     Сериалізатор для моделі TeacherDatabase.
@@ -119,6 +106,6 @@ class TaskSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'original_db', 'etalon_db', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'description', 'original_db', 'etalon_db', 'course', 'created_at', 'updated_at']
         read_only_fields = ['id', 'etalon_db', 'created_at', 'updated_at']
 

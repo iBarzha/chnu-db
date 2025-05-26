@@ -4,7 +4,7 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import AssignmentList from '../components/Assignment/AssignmentList';
+import TaskList from '../components/Task/TaskList';
 import CourseMaterials from '../components/Course/CourseMaterials';
 import api from '../api/auth';
 
@@ -14,6 +14,7 @@ export default function CourseDetailPage() {
   const [tab, setTab] = useState(0);
   const [course, setCourse] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
 
@@ -37,9 +38,21 @@ export default function CourseDetailPage() {
     }
   }, [id]);
 
+  // Получение задач (Task) для курса
+  const fetchTasks = useCallback(() => {
+    if (id) {
+      api.get(`/api/tasks/?course=${id}`)
+        .then(res => setTasks(res.data))
+        .catch(err => {
+          console.error('Ошибка получения задач:', err);
+        });
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchCourse();
-  }, [fetchCourse]);
+    fetchTasks();
+  }, [fetchCourse, fetchTasks]);
 
   // Перехід до сторінки створення завдання
   const handleOpenTaskDialog = () => {
@@ -73,7 +86,7 @@ export default function CourseDetailPage() {
       </Tabs>
 
       {/* Відображення вкладок */}
-      {tab === 0 && <AssignmentList courseId={id} assignments={assignments} />}
+      {tab === 0 && <TaskList tasks={tasks} />}
       {tab === 1 && <CourseMaterials courseId={id} />}
       {tab === 2 && (
         <Box sx={{ p: 3, textAlign: 'center' }}>

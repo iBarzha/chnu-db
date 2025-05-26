@@ -71,57 +71,6 @@ class Course(models.Model):
     class Meta:
         ordering = ['-created_at']
 
-class Assignment(models.Model):
-    """
-    Модель завдання в курсі.
-    Містить SQL-завдання для студентів.
-    """
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
-    title = models.CharField(max_length=200)
-    description = models.TextField()
-    due_date = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    schema_script = models.TextField(help_text="SQL для ініціалізації бази даних")
-    standard_solution = models.TextField(blank=True, null=True, help_text="SQL-розв'язок від вчителя")
-    standard_db_dump = models.FileField(upload_to='task_dumps/', blank=True, null=True)
-    solution_hash = models.CharField(max_length=64, help_text="Хеш еталонного розв'язку")
-
-    def __str__(self):
-        """
-        Текстове представлення завдання.
-        """
-        return f"{self.title} ({self.course.title})"
-
-    class Meta:
-        ordering = ['-created_at']
-
-class Submission(models.Model):
-    """
-    Модель відповіді студента на завдання.
-    Зберігає SQL-запит, результат та статус правильності.
-    """
-    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
-    student = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        limit_choices_to={'role': User.Role.STUDENT},
-        related_name='submissions'
-    )
-    query = models.TextField()
-    result_json = models.JSONField(null=True)  # Сирий результат запиту
-    is_correct = models.BooleanField(default=False)
-    submitted_at = models.DateTimeField(auto_now_add=True)
-    execution_time = models.FloatField(null=True)  # Час виконання у секундах
-
-    def __str__(self):
-        """
-        Текстове представлення відповіді.
-        """
-        return f"Submission by {self.student.username} for {self.assignment.title}"
-
-    class Meta:
-        ordering = ['-submitted_at']
-
 class TeacherDatabase(models.Model):
     """
     SQL-дамп бази даних, завантажений вчителем.
@@ -160,6 +109,7 @@ class Task(models.Model):
     original_db = models.FileField(upload_to='task_dumps/')
     # Еталонний файл бази (після маніпуляцій вчителя)
     etalon_db = models.FileField(upload_to='task_dumps/', blank=True, null=True)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

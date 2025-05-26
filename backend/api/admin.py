@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Course, Assignment, Submission
+from .models import User, Course
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -51,21 +51,5 @@ class CourseAdmin(admin.ModelAdmin):
     """
     list_display = ('title', 'teacher', 'created_at')
     list_filter = ('teacher',)
-
-@admin.register(Assignment)
-class AssignmentAdmin(admin.ModelAdmin):
-    """
-    Адмін-конфігурація для моделі Assignment.
-    """
-    list_display = ('title', 'course', 'created_at')
-    raw_id_fields = ('course',)
-
-@admin.register(Submission)
-class SubmissionAdmin(admin.ModelAdmin):
-    """
-    Адмін-конфігурація для моделі Submission.
-    """
-    list_display = ('assignment', 'student', 'is_correct', 'submitted_at')
-    list_filter = ('is_correct', 'assignment__course')
 
 admin.site.register(User, CustomUserAdmin)

@@ -2,14 +2,13 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     RegisterView, LoginView, ProfileView, CourseViewSet, 
-    AssignmentViewSet, TeacherDatabaseViewSet, TaskViewSet,
+    TeacherDatabaseViewSet, TaskViewSet,
     execute_sql_query, get_database_schema, sql_history
 )
 
 # Create a router for viewsets
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
-router.register(r'assignments', AssignmentViewSet, basename='assignment')
 router.register(r'teacher-databases', TeacherDatabaseViewSet, basename='teacher-database')
 router.register(r'tasks', TaskViewSet, basename='task')
 
