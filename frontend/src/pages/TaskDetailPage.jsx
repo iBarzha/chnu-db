@@ -4,6 +4,11 @@ import { Container, Typography, Paper, Box, Button, Divider, CircularProgress } 
 import { useTranslation } from 'react-i18next';
 import api from '../api/auth';
 import Editor from '@monaco-editor/react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 
 export default function TaskDetailPage() {
   const { id } = useParams();
@@ -13,6 +18,7 @@ export default function TaskDetailPage() {
   const [studentSql, setStudentSql] = useState('');
   const [submitResult, setSubmitResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -20,7 +26,7 @@ export default function TaskDetailPage() {
   useEffect(() => {
     if (id) {
       setLoading(true);
-      api.get(`/api/assignments/${id}/`)
+      api.get(`/api/tasks/${id}/`)
         .then(res => {
           setTask(res.data);
           setLoading(false);
@@ -39,6 +45,17 @@ export default function TaskDetailPage() {
       navigate(`/courses/${task.course}`);
     } else {
       navigate('/courses');
+    }
+  };
+
+  // Удаление таска
+  const handleDelete = async () => {
+    setDeleteDialogOpen(false);
+    try {
+      await api.delete(`/api/tasks/${id}/`);
+      navigate('/tasks');
+    } catch (err) {
+      setError(t('task.deleteError') || 'Failed to delete task.');
     }
   };
 
@@ -84,10 +101,31 @@ export default function TaskDetailPage() {
       <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">{task.title}</Typography>
-          <Button variant="outlined" onClick={handleBack}>
-            {t('task.backToCourse')}
-          </Button>
+          <Box>
+            <Button variant="outlined" onClick={handleBack} sx={{ mr: 2 }}>
+              {t('task.backToCourse')}
+            </Button>
+            <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+              {t('task.delete') || 'Delete'}
+            </Button>
+          </Box>
         </Box>
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>{t('task.confirmDeleteTitle') || 'Confirm deletion'}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {t('task.confirmDelete') || 'Are you sure you want to delete this task?'}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)} color="primary">
+              {t('common.cancel') || 'Cancel'}
+            </Button>
+            <Button onClick={handleDelete} color="error" autoFocus>
+              {t('task.delete') || 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Divider sx={{ mb: 3 }} />
 
@@ -96,7 +134,9 @@ export default function TaskDetailPage() {
             {t('task.dueDate')}
           </Typography>
           <Typography variant="body1">
-            {new Date(task.due_date).toLocaleDateString()}
+            {task.due_date && !isNaN(Date.parse(task.due_date))
+              ? new Date(task.due_date).toLocaleString()
+              : t('task.noDueDate') || '-'}
           </Typography>
         </Box>
 

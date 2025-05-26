@@ -110,6 +110,7 @@ class Task(models.Model):
     # Еталонний файл бази (після маніпуляцій вчителя)
     etalon_db = models.FileField(upload_to='task_dumps/', blank=True, null=True)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
+    due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -10,6 +10,7 @@ import TeacherDatabaseUploadPage from "./pages/TeacherDatabaseUploadPage";
 import TeacherDatabaseListPage from "./pages/TeacherDatabaseListPage";
 import SqlEditorPage from "./pages/SqlEditorPage";
 import ProfilePage from "./pages/ProfilePage";
+import TaskListPage from './pages/TaskListPage';
 
 // Ліниве завантаження компонентів для кращої продуктивності
 const Login = lazy(() => import('./pages/Login'));
@@ -76,7 +77,8 @@ export default function App() {
                 <Route path="/upload-database" element={<TeacherDatabaseUploadPage />} />
                 <Route path="/my-databases" element={<TeacherDatabaseListPage />} />
                 <Route path="/sql-editor" element={<SqlEditorPage />} />
-
+                <Route path="/tasks" element={<TaskListPage />} />
+                <Route path="/tasks/:id" element={<TaskDetailPage />} />
               </Route>
             </Route>
 

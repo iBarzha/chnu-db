@@ -86,7 +86,7 @@ export default function TaskCreatePage() {
         formData.append('title', values.title);
         formData.append('description', values.description);
         if (values.due_date) {
-          formData.append('due_date', values.due_date);
+          formData.append('due_date', new Date(values.due_date).toISOString());
         }
         formData.append('course', courseId); // Привязка таска к курсу
 

@@ -66,7 +66,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Course.objects.all()
+        queryset = Course.objects.all().annotate(assignments_count=Count('tasks'))
         if user.role == User.Role.TEACHER:
             return queryset.filter(teacher=user)
         elif user.role == User.Role.STUDENT:
