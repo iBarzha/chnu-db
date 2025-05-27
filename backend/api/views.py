@@ -630,3 +630,202 @@ def sql_history(request):
     ]
     return Response({'history': data})
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def task_schema(request, pk):
+    """
+    Возвращает схему тимчасової бази задачі (створює з дампу, якщо немає).
+    """
+    from .models import TemporaryDatabase
+    import psycopg2
+    import uuid
+    from django.conf import settings
+    try:
+        task = Task.objects.get(pk=pk)
+    except Task.DoesNotExist:
+        return Response({'error': 'Task not found.'}, status=404)
+    if not task.original_db:
+        return Response({'error': 'No database dump for this task.'}, status=400)
+    session_key = request.session.session_key
+    if not session_key:
+        request.session.save()
+        session_key = request.session.session_key
+    # Имя временной базы: task_{task.id}_{user.id}_{session_key}
+    db_prefix = f"task_{task.id}_{request.user.id}_{session_key[:8]}"
+    temp_db = TemporaryDatabase.objects.filter(
+        user=request.user,
+        session_key=session_key,
+        teacher_database=None,
+        database_name__startswith=db_prefix
+    ).first()
+    db_config = settings.DATABASES['default']
+    if not temp_db:
+        # Создать временную базу
+        temp_db_name = f"{db_prefix}_{uuid.uuid4().hex[:8]}"
+        admin_conn = psycopg2.connect(dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+        admin_conn.autocommit = True
+        admin_cursor = admin_conn.cursor()
+        try:
+            admin_cursor.execute(f"CREATE DATABASE {temp_db_name}")
+            temp_conn = psycopg2.connect(dbname=temp_db_name, user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+            temp_conn.autocommit = True
+            temp_cursor = temp_conn.cursor()
+            with open(task.original_db.path, 'r') as f:
+                temp_cursor.execute(f.read())
+            temp_cursor.close()
+            temp_conn.close()
+            temp_db = TemporaryDatabase.objects.create(
+                user=request.user,
+                teacher_database=None,
+                database_name=temp_db_name,
+                session_key=session_key
+            )
+        except Exception as e:
+            try:
+                admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+            except Exception:
+                pass
+            admin_cursor.close()
+            admin_conn.close()
+            return Response({'error': str(e)}, status=500)
+        admin_cursor.close()
+        admin_conn.close()
+    db_name = temp_db.database_name
+    # Получить схему
+    try:
+        conn = psycopg2.connect(dbname=db_name, user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+        cursor = conn.cursor()
+        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+        tables = [row[0] for row in cursor.fetchall()]
+        schema = {}
+        for table in tables:
+            cursor.execute(f"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = %s", (table,))
+            columns = cursor.fetchall()
+            schema[table] = [
+                {
+                    'name': col[0],
+                    'type': col[1],
+                    'notnull': col[2] == 'NO',
+                    'pk': False
+                } for col in columns
+            ]
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+    return Response({'tables': list(schema.keys()), 'schema': schema})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def task_submit(request, pk):
+    """
+    Выполняет SQL на временной базе задачи, возвращает результат.
+    """
+    from .models import TemporaryDatabase
+    import psycopg2
+    import uuid
+    from django.conf import settings
+    sql = request.data.get('sql')
+    if not sql:
+        return Response({'error': 'No SQL provided.'}, status=400)
+    try:
+        task = Task.objects.get(pk=pk)
+    except Task.DoesNotExist:
+        return Response({'error': 'Task not found.'}, status=404)
+    if not task.original_db:
+        return Response({'error': 'No database dump for this task.'}, status=400)
+    session_key = request.session.session_key
+    if not session_key:
+        request.session.save()
+        session_key = request.session.session_key
+    db_prefix = f"task_{task.id}_{request.user.id}_{session_key[:8]}"
+    temp_db = TemporaryDatabase.objects.filter(
+        user=request.user,
+        session_key=session_key,
+        teacher_database=None,
+        database_name__startswith=db_prefix
+    ).first()
+    db_config = settings.DATABASES['default']
+    if not temp_db:
+        # Создать временную базу
+        temp_db_name = f"{db_prefix}_{uuid.uuid4().hex[:8]}"
+        admin_conn = psycopg2.connect(dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+        admin_conn.autocommit = True
+        admin_cursor = admin_conn.cursor()
+        try:
+            admin_cursor.execute(f"CREATE DATABASE {temp_db_name}")
+            temp_conn = psycopg2.connect(dbname=temp_db_name, user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+            temp_conn.autocommit = True
+            temp_cursor = temp_conn.cursor()
+            with open(task.original_db.path, 'r') as f:
+                temp_cursor.execute(f.read())
+            temp_cursor.close()
+            temp_conn.close()
+            temp_db = TemporaryDatabase.objects.create(
+                user=request.user,
+                teacher_database=None,
+                database_name=temp_db_name,
+                session_key=session_key
+            )
+        except Exception as e:
+            try:
+                admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db_name}")
+            except Exception:
+                pass
+            admin_cursor.close()
+            admin_conn.close()
+            return Response({'error': str(e)}, status=500)
+        admin_cursor.close()
+        admin_conn.close()
+    db_name = temp_db.database_name
+    # Выполнить SQL
+    try:
+        conn = psycopg2.connect(dbname=db_name, user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+        conn.autocommit = True
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        try:
+            results = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            result_dicts = [dict(zip(columns, row)) for row in results]
+        except Exception:
+            result_dicts = []
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+    return Response({'results': result_dicts})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def task_reset_db(request, pk):
+    """
+    Удаляет временную базу для задачи (Task) для текущего пользователя и сессии.
+    """
+    from .models import TemporaryDatabase
+    import psycopg2
+    import uuid
+    from django.conf import settings
+    try:
+        task = Task.objects.get(pk=pk)
+    except Task.DoesNotExist:
+        return Response({'error': 'Task not found.'}, status=404)
+    session_key = request.session.session_key
+    if not session_key:
+        request.session.save()
+        session_key = request.session.session_key
+    temp_db = TemporaryDatabase.objects.filter(user=request.user, session_key=session_key, teacher_database=None, database_name__startswith=f"task_{task.id}_").first()
+    if not temp_db:
+        return Response({'status': 'No temp DB to delete.'})
+    db_config = settings.DATABASES['default']
+    admin_conn = psycopg2.connect(dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'], host=db_config['HOST'], port=db_config['PORT'])
+    admin_conn.autocommit = True
+    admin_cursor = admin_conn.cursor()
+    try:
+        admin_cursor.execute(f"DROP DATABASE IF EXISTS {temp_db.database_name}")
+    except Exception:
+        pass
+    admin_cursor.close()
+    admin_conn.close()
+    temp_db.delete()
+    return Response({'status': 'Temp DB deleted.'})

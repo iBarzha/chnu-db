@@ -93,7 +93,7 @@ class TemporaryDatabase(models.Model):
     Створюється при виборі бази в редакторі SQL і видаляється після завершення сесії.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='temporary_databases')
-    teacher_database = models.ForeignKey(TeacherDatabase, on_delete=models.CASCADE, related_name='temporary_instances')
+    teacher_database = models.ForeignKey(TeacherDatabase, on_delete=models.CASCADE, related_name='temporary_instances', null=True, blank=True)
     database_name = models.CharField(max_length=100, unique=True)
     session_key = models.CharField(max_length=40)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -106,9 +106,9 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     # Оригінальний файл бази (завантажений вчителем)
-    original_db = models.FileField(upload_to='task_dumps/')
+    original_db = models.FileField(upload_to='teacher_dumps/')
     # Еталонний файл бази (після маніпуляцій вчителя)
-    etalon_db = models.FileField(upload_to='task_dumps/', blank=True, null=True)
+    etalon_db = models.FileField(upload_to='teacher_dumps/', blank=True, null=True)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

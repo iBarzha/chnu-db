@@ -265,27 +265,9 @@ export default function TaskDetailPage() {
             <Button variant="outlined" onClick={handleBack} sx={{ mr: 2 }}>
               {t('task.backToCourse')}
             </Button>
-            <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
-              {t('task.delete') || 'Delete'}
-            </Button>
+            {/* Кнопка удаления и диалог удалены для студентов */}
           </Box>
         </Box>
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>{t('task.confirmDeleteTitle') || 'Confirm deletion'}</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              {t('task.confirmDelete') || 'Are you sure you want to delete this task?'}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)} color="primary">
-              {t('common.cancel') || 'Cancel'}
-            </Button>
-            <Button onClick={handleDelete} color="error" autoFocus>
-              {t('task.delete') || 'Delete'}
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         <Divider sx={{ mb: 3 }} />
 
@@ -311,7 +293,7 @@ export default function TaskDetailPage() {
 
         <Divider sx={{ my: 3 }} />
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">Your SQL Solution</Typography>
+          <Typography variant="h6">{t('task.yourSqlSolution', 'Your SQL Solution')}</Typography>
           <Editor
             height="200px"
             defaultLanguage="sql"
@@ -321,32 +303,60 @@ export default function TaskDetailPage() {
           />
           <Button
             variant="contained"
-            sx={{ mt: 2 }}
-            onClick={handleSubmitSql}
+            sx={{ mt: 2, mr: 2 }}
+            onClick={async () => {
+              setSubmitting(true);
+              setSubmitResult(null);
+              setResults(null);
+              setExecutionTime(null);
+              try {
+                const res = await api.post(`/api/tasks/${id}/submit/`, { sql: studentSql });
+                setResults(res.data.results || []);
+                setExecutionTime(res.data.execution_time);
+                await loadSchema();
+              } catch (err) {
+                setResults(null);
+                setExecutionTime(null);
+              } finally {
+                setSubmitting(false);
+              }
+            }}
             disabled={submitting || !studentSql}
           >
-            {submitting ? 'Submitting...' : 'Submit Solution'}
+            {submitting ? t('task.applying', 'Applying...') : t('task.applySql', 'Apply SQL')}
           </Button>
         </Box>
-        {/* --- місцедля результатів та схеми --- */}
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
-          <Tab label={t('sql.results') || 'Results'} />
-          <Tab label={t('sql.schema') || 'Schema'} />
+          <Tab label={t('sql.results', 'Results')} />
+          <Tab label={t('sql.schema', 'Schema')} />
         </Tabs>
         {activeTab === 0 && renderResults()}
         {activeTab === 1 && renderSchema()}
-        {/* Відображення результату перевірки SQL-відповіді */}
-        {submitResult && (
-          <Box sx={{ mt: 2 }}>
-            {submitResult.correct ? (
-              <Typography color="success.main">Correct! Your solution matches the reference.</Typography>
-            ) : submitResult.error ? (
-              <Typography color="error">{submitResult.error}</Typography>
-            ) : (
-              <Typography color="warning.main">Incorrect. Please try again.</Typography>
-            )}
-          </Box>
-        )}
+        {/* Сабмит вынесен вниз, только сравнение эталона и временной БД */}
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Button
+            variant="contained"
+            color="success"
+            size="large"
+            onClick={handleSubmitSql}
+            disabled={submitting}
+          >
+            {submitting ? t('task.submitting', 'Submitting...') : t('task.submitSolution', 'Submit Solution')}
+          </Button>
+          {submitResult && (
+            <Box sx={{ mt: 2 }}>
+              {submitResult.correct === true && (
+                <Typography color="success.main">{t('task.correct', 'Correct! Your solution matches the reference.')}</Typography>
+              )}
+              {submitResult.correct === false && (
+                <Typography color="warning.main">{t('task.incorrect', 'Incorrect. Please try again.')}</Typography>
+              )}
+              {submitResult.error && (
+                <Typography color="error">{submitResult.error}</Typography>
+              )}
+            </Box>
+          )}
+        </Box>
       </Paper>
     </Container>
   );

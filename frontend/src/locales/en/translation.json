@@ -141,7 +141,13 @@
     "workingCopy": "Working Copy of Database",
     "applyChanges": "Apply Changes",
     "viewSchema": "View Database Schema",
-    "testYourSolution": "Test Your Solution Before Submitting"
+    "testYourSolution": "Test Your Solution Before Submitting",
+    "yourSqlSolution": "Your SQL Solution",
+    "applySql": "Apply SQL",
+    "applying": "Applying...",
+    "submitSolution": "Submit Solution",
+    "correct": "Correct! Your solution matches the reference.",
+    "incorrect": "Incorrect. Please try again."
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
@@ -198,5 +204,4 @@
     "viewExpectedResult": "View Expected Result (Teacher Only)",
     "compareWithExpected": "Compare Your Result with Expected"
   }
-
 }

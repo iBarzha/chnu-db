@@ -119,7 +119,13 @@
     "standardSolution": "Стандартне рішення для вибраної бази даних",
     "standardSolutionDescription": "Створіть стандартне рішення спеціально для вибраної бази даних. Це рішення буде існувати, поки існує завдання.",
     "saveChanges": "Зберегти зміни",
-    "changesPreview": "Перегляд змін"
+    "changesPreview": "Перегляд змін",
+    "yourSqlSolution": "Ваше SQL рішення",
+    "applySql": "Застосувати SQL",
+    "applying": "Застосування...",
+    "submitSolution": "Відправити рішення",
+    "correct": "Вірно! Ваше рішення співпадає з еталоном.",
+    "incorrect": "Невірно. Спробуйте ще раз."
   },
   "layout": {
     "appBarSpacing": "Відступ під AppBar",
