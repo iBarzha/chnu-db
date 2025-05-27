@@ -135,7 +135,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         if not task.original_db:
             return Response({'error': 'До цієї задачі не прикріплено оригінальний файл БД.'}, status=400)
         # Створити тимчасову БД та застосувати оригінальний дамп
-        db_config = settings.DATABASEС['default']
+        db_config = settings.DATABASES['default']
         temp_db_name = f"etalon_db_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],
@@ -186,7 +186,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         task = self.get_object()
         if not task.original_db or not task.etalon_db:
             return Response({'error': 'Задача налаштована не повністю.'}, status=400)
-        db_config = settings.DATABASEС['default']
+        db_config = settings.DATABASES['default']
         temp_db_name = f"student_db_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'], user=db_config['USER'], password=db_config['PASSWORD'],
@@ -294,7 +294,7 @@ def execute_sql_query(request):
             temp_db.save(update_fields=["last_used"])
         except TemporaryDatabase.DoesNotExist:
             print(f"[execute_sql_query] НЕ ЗНАЙДЕНО temp_db, створюємо нову для user={request.user.id}, teacher_db={teacher_db.id if teacher_db else None}, session_key={session_key}")
-            db_config = settings.DATABASEС['default']
+            db_config = settings.DATABASES['default']
             admin_conn = psycopg2.connect(
                 dbname=db_config['NAME'],
                 user=db_config['USER'],
@@ -338,7 +338,7 @@ def execute_sql_query(request):
             admin_cursor.close()
             admin_conn.close()
 
-        db_config = settings.DATABASEС['default']
+        db_config = settings.DATABASES['default']
         conn = psycopg2.connect(
             dbname=db_name,
             user=db_config['USER'],
@@ -428,7 +428,7 @@ def get_database_schema(request, database_id):
                 db_name = temp_db.database_name
             except TemporaryDatabase.DoesNotExist:
                 # Створити нову тимчасову базу
-                db_config = settings.DATABASEС['default']
+                db_config = settings.DATABASES['default']
                 admin_conn = psycopg2.connect(
                     dbname=db_config['NAME'],
                     user=db_config['USER'],
@@ -489,7 +489,7 @@ def get_database_schema(request, database_id):
 
         try:
             # Підключитися до тимчасової бази
-            db_config = settings.DATABASEС['default']
+            db_config = settings.DATABASES['default']
             conn = psycopg2.connect(
                 dbname=db_name,
                 user=db_config['USER'],
@@ -587,7 +587,7 @@ def delete_temp_database(request):
             session_key=session_key
         )
         # Видалити саму базу PostgreSQL
-        db_config = settings.DATABASEС['default']
+        db_config = settings.DATABASES['default']
         admin_conn = psycopg2.connect(
             dbname=db_config['NAME'],
             user=db_config['USER'],

@@ -81,7 +81,7 @@ class TeacherDatabase(models.Model):
         limit_choices_to={'role': User.Role.TEACHER},
         related_name='uploaded_databases'
     )
-    sql_dump = models.FileField(upload_to='teacher_dumps/')
+    sql_dump = models.FileField(upload_to='')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

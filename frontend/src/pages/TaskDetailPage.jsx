@@ -9,6 +9,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+// --- добавляем необходимые компоненты для схемы и результатов
+import {
+  Tabs, Tab, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Alert, Chip
+} from '@mui/material';
 
 export default function TaskDetailPage() {
   const { id } = useParams();
@@ -21,6 +26,11 @@ export default function TaskDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [schema, setSchema] = useState(null);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [results, setResults] = useState(null);
+  const [executionTime, setExecutionTime] = useState(null);
 
   // Завантаження завдання при монтуванні компонента
   useEffect(() => {
@@ -39,6 +49,25 @@ export default function TaskDetailPage() {
     }
   }, [id, t]);
 
+  useEffect(() => {
+    if (id) {
+      loadSchema();
+    }
+    // eslint-disable-next-line
+  }, [id]);
+
+  const loadSchema = async () => {
+    setLoadingSchema(true);
+    try {
+      const res = await api.get(`/api/tasks/${id}/schema/`);
+      setSchema(res.data);
+    } catch (err) {
+      setSchema(null);
+    } finally {
+      setLoadingSchema(false);
+    }
+  };
+
   // Повернення до курсу або списку курсів
   const handleBack = () => {
     if (task && task.course) {
@@ -48,7 +77,7 @@ export default function TaskDetailPage() {
     }
   };
 
-  // Удаление таска
+  // Видалення таска
   const handleDelete = async () => {
     setDeleteDialogOpen(false);
     try {
@@ -63,14 +92,145 @@ export default function TaskDetailPage() {
   const handleSubmitSql = async () => {
     setSubmitting(true);
     setSubmitResult(null);
+    setResults(null);
+    setExecutionTime(null);
     try {
       const res = await api.post(`/api/tasks/${id}/submit/`, { sql: studentSql });
       setSubmitResult(res.data);
+      setResults(res.data.results || []);
+      setExecutionTime(res.data.execution_time);
     } catch (err) {
       setSubmitResult({ error: err.response?.data?.error || err.message || 'Submission failed.' });
+      setResults(null);
+      setExecutionTime(null);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // --- відображення результатів
+  const renderResults = () => {
+    if (submitting) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+    if (submitResult?.error) {
+      return (
+        <Alert severity="error" sx={{ my: 2 }}>
+          {submitResult.error}
+        </Alert>
+      );
+    }
+    if (!results || results.length === 0) {
+      return (
+        <Alert severity="success" sx={{ my: 2 }}>
+          {t('sql.queryExecutedSuccessfully') || 'Query executed successfully (no results to display)'}
+        </Alert>
+      );
+    }
+    if (results.length > 0 && Object.keys(results[0]).length > 0) {
+      const columns = Object.keys(results[0]);
+      return (
+        <Box sx={{ mt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography variant="subtitle2">
+              {t('sql.rowsReturned', { count: results.length }) || `Rows: ${results.length}`}
+            </Typography>
+            {executionTime && (
+              <Typography variant="caption" color="text.secondary">
+                {`Execution time: ${(executionTime * 1000).toFixed(2)} ms`}
+              </Typography>
+            )}
+          </Box>
+          <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  {columns.map((column) => (
+                    <TableCell key={column}>{column}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {results.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {columns.map((column) => (
+                      <TableCell key={`${rowIndex}-${column}`}>
+                        {row[column] !== null ? String(row[column]) : 'NULL'}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      );
+    }
+    return (
+      <Alert severity="success" sx={{ my: 2 }}>
+        {t('sql.queryExecutedSuccessfully', { count: results.length })}
+        {executionTime && (
+          <Typography variant="caption" display="block">
+            {`Execution time: ${(executionTime * 1000).toFixed(2)} ms`}
+          </Typography>
+        )}
+      </Alert>
+    );
+  };
+
+  // --- Відображення схеми бази даних
+  const renderSchema = () => {
+    if (loadingSchema) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress size={24} />
+        </Box>
+      );
+    }
+    if (!schema || !schema.tables || schema.tables.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
+          {t('sql.noSchemaAvailable') || 'No schema available.'}
+        </Typography>
+      );
+    }
+    return (
+      <Box sx={{ mt: 2 }}>
+        {schema.tables.map((table) => (
+          <Paper key={table} sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              {table}
+            </Typography>
+            <TableContainer sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t('sql.column') || 'Column'}</TableCell>
+                    <TableCell>{t('sql.type') || 'Type'}</TableCell>
+                    <TableCell align="center">PK</TableCell>
+                    <TableCell align="center">Not Null</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {schema.schema[table].map((column) => (
+                    <TableRow key={column.name}>
+                      <TableCell>{column.name}</TableCell>
+                      <TableCell>{column.type}</TableCell>
+                      <TableCell align="center">{column.pk ? '✓' : ''}</TableCell>
+                      <TableCell align="center">{column.notnull ? '✓' : ''}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        ))}
+      </Box>
+    );
   };
 
   if (loading) {
@@ -168,6 +328,13 @@ export default function TaskDetailPage() {
             {submitting ? 'Submitting...' : 'Submit Solution'}
           </Button>
         </Box>
+        {/* --- місцедля результатів та схеми --- */}
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
+          <Tab label={t('sql.results') || 'Results'} />
+          <Tab label={t('sql.schema') || 'Schema'} />
+        </Tabs>
+        {activeTab === 0 && renderResults()}
+        {activeTab === 1 && renderSchema()}
         {/* Відображення результату перевірки SQL-відповіді */}
         {submitResult && (
           <Box sx={{ mt: 2 }}>
