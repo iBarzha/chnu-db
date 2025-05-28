@@ -542,16 +542,6 @@ const SQLEditorPage = () => {
         {t('sql.editor')}
       </Typography>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6">{t('sql.welcome')}</Typography>
-        <Typography variant="body1" paragraph sx={{ mt: 2 }}>
-          {t('sql.introText')}
-        </Typography>
-        <Typography variant="body1" paragraph>
-          {t('sql.featuresText')}
-        </Typography>
-      </Paper>
-
       {renderRoleSpecificContent()}
     </Container>
   );

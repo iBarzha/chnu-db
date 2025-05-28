@@ -147,7 +147,9 @@
     "applying": "Applying...",
     "submitSolution": "Submit Solution",
     "correct": "Correct! Your solution matches the reference.",
-    "incorrect": "Incorrect. Please try again."
+    "incorrect": "Incorrect. Please try again.",
+    "title": "Task Title",
+    "selectReferenceDatabase": "Select Database for Reference Solution"
   },
   "layout": {
     "appBarSpacing": "Spacing under AppBar",
