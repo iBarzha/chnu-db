@@ -1,206 +1,254 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Typography, Paper, Box, Button, Divider, CircularProgress } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Paper,
+  Box,
+  Button,
+  Divider,
+  CircularProgress,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import api from '../api/auth';
 import Editor from '@monaco-editor/react';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogActions from '@mui/material/DialogActions';
-// --- добавляем необходимые компоненты для схемы и результатов
-import {
-  Tabs, Tab, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Alert, Chip
-} from '@mui/material';
 
 export default function TaskDetailPage() {
+  // Отримуємо ID задачі з URL-параметрів
   const { id } = useParams();
-  const [task, setTask] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [studentSql, setStudentSql] = useState('');
-  const [submitResult, setSubmitResult] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // Хук для навігації між сторінками
   const navigate = useNavigate();
+  // Хук для перекладу (i18n)
   const { t } = useTranslation();
-  const [schema, setSchema] = useState(null);
-  const [loadingSchema, setLoadingSchema] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
-  const [results, setResults] = useState(null);
-  const [executionTime, setExecutionTime] = useState(null);
 
-  // Завантаження завдання при монтуванні компонента
+  // Стан для зберігання деталей задачі
+  const [task, setTask] = useState(null);
+  // Стан для індикації завантаження деталей задачі
+  const [loadingTask, setLoadingTask] = useState(true);
+  // Стан для повідомлення про помилку при завантаженні задачі
+  const [error, setError] = useState(null);
+
+  // Стан для SQL-коду студента (контролюється редактором)
+  const [studentSql, setStudentSql] = useState('');
+
+  // Стан для індикації виконання запиту (preview)
+  const [executing, setExecuting] = useState(false);
+  // Стан для зберігання результатів PREVIEW: масив об’єктів з даними
+  const [previewResults, setPreviewResults] = useState([]);
+  // Стан для зберігання назв колонок PREVIEW-результатів
+  const [previewColumns, setPreviewColumns] = useState([]);
+  // Стан для повідомлення про помилку під час PREVIEW
+  const [previewError, setPreviewError] = useState(null);
+
+  // Стан для схеми бази даних (назви таблиць і колонки)
+  const [schema, setSchema] = useState(null);
+  // Стан для індикації завантаження схеми
+  const [loadingSchema, setLoadingSchema] = useState(false);
+
+  // Стан для індикації відправки рішення (submit)
+  const [submitting, setSubmitting] = useState(false);
+  // Стан для результату SUBMIT: { correct: bool, details: {...} }
+  const [submitResult, setSubmitResult] = useState(null);
+  // Стан для повідомлення про помилку під час SUBMIT
+  const [submitError, setSubmitError] = useState(null);
+
+  // Стан для активної вкладки: 0 = Results (preview), 1 = Schema
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Завантажуємо деталі задачі при монтуванні компоненту (і коли id змінюється)
   useEffect(() => {
-    if (id) {
-      setLoading(true);
-      api.get(`/api/tasks/${id}/`)
-        .then(res => {
-          setTask(res.data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Error fetching task:', err);
-          setError(t('task.loadingError'));
-          setLoading(false);
-        });
-    }
+    if (!id) return;
+    setLoadingTask(true);
+    api
+      .get(`/api/tasks/${id}/`)
+      .then(res => {
+        // Зберігаємо отримані дані задачі
+        setTask(res.data);
+        setLoadingTask(false);
+      })
+      .catch(err => {
+        console.error(err);
+        // Якщо помилка, показуємо повідомлення
+        setError(t('task.loadingError') || 'Не вдалося завантажити задачу.');
+        setLoadingTask(false);
+      });
   }, [id, t]);
 
+  // Підвантажуємо схему бази даних після того, як отримали дані задачі
   useEffect(() => {
-    if (id) {
-      loadSchema();
-    }
-    // eslint-disable-next-line
-  }, [id]);
+    if (!task) return;
+    loadSchema();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task]);
 
+  // Функція для завантаження схеми бази даних (таблиці + колонки)
   const loadSchema = async () => {
     setLoadingSchema(true);
+    setSchema(null);
     try {
+      // Викликаємо ендпоінт для отримання схеми конкретної задачі
       const res = await api.get(`/api/tasks/${id}/schema/`);
+      // Зберігаємо отриману схему у стані
       setSchema(res.data);
     } catch (err) {
+      console.error(err);
       setSchema(null);
     } finally {
       setLoadingSchema(false);
     }
   };
 
-  // Повернення до курсу або списку курсів
+  // Обробник кнопки "Back": повертає на сторінку курсу або до загальної сторінки курсів
   const handleBack = () => {
-    if (task && task.course) {
+    if (task?.course) {
       navigate(`/courses/${task.course}`);
     } else {
       navigate('/courses');
     }
   };
 
-  // Видалення таска
-  const handleDelete = async () => {
-    setDeleteDialogOpen(false);
+  // Функція для попереднього перегляду (preview) SQL-коду студента
+  const handlePreviewSql = async () => {
+    setExecuting(true);
+    setPreviewResults([]);
+    setPreviewColumns([]);
+    setPreviewError(null);
+
     try {
-      await api.delete(`/api/tasks/${id}/`);
-      navigate('/tasks');
+      // Викликаємо endpoint /api/tasks/{id}/execute/
+      // Цей endpoint відновить початковий дамп із task.original_db і виконає SQL студента.
+      const payload = {
+        sql: studentSql
+      };
+      const res = await api.post(`/api/tasks/${id}/execute/`, payload);
+
+      // Бекенд повертає структуру { results: [...], columns: [...] }
+      const results = res.data.results || [];
+      // Якщо немає явно columns, беремо ключі першого об’єкта в results
+      const columns = res.data.columns || Object.keys(results[0] || {});
+
+      setPreviewResults(results);
+      setPreviewColumns(columns);
     } catch (err) {
-      setError(t('task.deleteError') || 'Failed to delete task.');
+      console.error(err);
+      // Зберігаємо помилку у стані, щоб показати користувачу
+      setPreviewError(
+        err.response?.data?.error || err.message || 'Помилка виконання SQL.'
+      );
+    } finally {
+      setExecuting(false);
     }
   };
 
-  // Відправка SQL-відповіді студента
-  const handleSubmitSql = async () => {
+  // Функція для відправки рішення та порівняння з еталоном
+  const handleSubmitSolution = async () => {
     setSubmitting(true);
     setSubmitResult(null);
-    setResults(null);
-    setExecutionTime(null);
+    setSubmitError(null);
+
     try {
-      const res = await api.post(`/api/tasks/${id}/submit/`, { sql: studentSql });
+      // Викликаємо endpoint /api/tasks/{id}/submit/
+      // Тепер він просто порівнює поточний стан тимчасової БД (без повторного виконання SQL)
+      const res = await api.post(`/api/tasks/${id}/submit/`, {}); // без sql
       setSubmitResult(res.data);
-      setResults(res.data.results || []);
-      setExecutionTime(res.data.execution_time);
+      // Після submit оновлюємо схему, щоб показати зміни (якщо рішення коректне)
+      await loadSchema();
     } catch (err) {
-      setSubmitResult({ error: err.response?.data?.error || err.message || 'Submission failed.' });
-      setResults(null);
-      setExecutionTime(null);
+      console.error(err);
+      setSubmitError(
+        err.response?.data?.error || err.message || 'Помилка надсилання рішення.'
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // --- відображення результатів
-  const renderResults = () => {
-    if (submitting) {
+  // Компонент для відображення результатів PREVIEW (таблиця або повідомлення)
+  const renderPreviewResults = () => {
+    if (executing) {
+      // Показуємо спінер, поки йде запит до сервера
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
           <CircularProgress />
         </Box>
       );
     }
-    if (submitResult?.error) {
+    if (previewError) {
+      // Якщо сталася помилка, показуємо Alert
       return (
         <Alert severity="error" sx={{ my: 2 }}>
-          {submitResult.error}
+          {previewError}
         </Alert>
       );
     }
-    if (!results || results.length === 0) {
+    if (!previewResults.length) {
+      // Якщо запит виконався, але не повернув рядків
       return (
-        <Alert severity="success" sx={{ my: 2 }}>
-          {t('sql.queryExecutedSuccessfully') || 'Query executed successfully (no results to display)'}
+        <Alert severity="info" sx={{ my: 2 }}>
+          {t('sql.noRows') || 'Запит виконано успішно (рядків не повернуто).'}
         </Alert>
       );
     }
-    if (results.length > 0 && Object.keys(results[0]).length > 0) {
-      const columns = Object.keys(results[0]);
-      return (
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="subtitle2">
-              {t('sql.rowsReturned', { count: results.length }) || `Rows: ${results.length}`}
-            </Typography>
-            {executionTime && (
-              <Typography variant="caption" color="text.secondary">
-                {`Execution time: ${(executionTime * 1000).toFixed(2)} ms`}
-              </Typography>
-            )}
-          </Box>
-          <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableCell key={column}>{column}</TableCell>
+    // Інакше — відображаємо результати в таблиці
+    return (
+      <Box sx={{ mt: 2 }}>
+        <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                {previewColumns.map(col => (
+                  <TableCell key={col}>{col}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {previewResults.map((row, idx) => (
+                <TableRow key={idx}>
+                  {previewColumns.map(col => (
+                    <TableCell key={`${idx}-${col}`}>
+                      {row[col] !== null ? String(row[col]) : 'NULL'}
+                    </TableCell>
                   ))}
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {results.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {columns.map((column) => (
-                      <TableCell key={`${rowIndex}-${column}`}>
-                        {row[column] !== null ? String(row[column]) : 'NULL'}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      );
-    }
-    return (
-      <Alert severity="success" sx={{ my: 2 }}>
-        {t('sql.queryExecutedSuccessfully', { count: results.length })}
-        {executionTime && (
-          <Typography variant="caption" display="block">
-            {`Execution time: ${(executionTime * 1000).toFixed(2)} ms`}
-          </Typography>
-        )}
-      </Alert>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
     );
   };
 
-  // --- Відображення схеми бази даних
+  // Компонент для відображення схеми бази даних (таблиці + колонки)
   const renderSchema = () => {
     if (loadingSchema) {
+      // Поки іде завантаження схеми, показуємо спінер
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
           <CircularProgress size={24} />
         </Box>
       );
     }
-    if (!schema || !schema.tables || schema.tables.length === 0) {
+    if (!schema || !schema.tables?.length) {
+      // Якщо схема не доступна або немає таблиць
       return (
         <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
-          {t('sql.noSchemaAvailable') || 'No schema available.'}
+          {t('sql.noSchemaAvailable') || 'Схема недоступна.'}
         </Typography>
       );
     }
+    // Відображаємо списком усі таблиці та їхні колонки
     return (
       <Box sx={{ mt: 2 }}>
-        {schema.tables.map((table) => (
+        {schema.tables.map(table => (
           <Paper key={table} sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle1" fontWeight="bold">
               {table}
@@ -209,14 +257,14 @@ export default function TaskDetailPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>{t('sql.column') || 'Column'}</TableCell>
-                    <TableCell>{t('sql.type') || 'Type'}</TableCell>
+                    <TableCell>{t('sql.column') || 'Колонка'}</TableCell>
+                    <TableCell>{t('sql.type') || 'Тип'}</TableCell>
                     <TableCell align="center">PK</TableCell>
                     <TableCell align="center">Not Null</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {schema.schema[table].map((column) => (
+                  {schema.schema[table].map(column => (
                     <TableRow key={column.name}>
                       <TableCell>{column.name}</TableCell>
                       <TableCell>{column.type}</TableCell>
@@ -233,7 +281,8 @@ export default function TaskDetailPage() {
     );
   };
 
-  if (loading) {
+  // Якщо дані задачі ще завантажуються, показуємо спінер на всю сторінку
+  if (loadingTask) {
     return (
       <Container maxWidth="md" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
@@ -241,59 +290,61 @@ export default function TaskDetailPage() {
     );
   }
 
+  // Якщо при завантаженні сталася помилка або задача не знайдена
   if (error || !task) {
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="h6" color="error">
-            {error || t('task.taskNotFound')}
+            {error || t('task.taskNotFound') || 'Задача не знайдена.'}
           </Typography>
           <Button variant="contained" sx={{ mt: 2 }} onClick={() => navigate('/courses')}>
-            {t('task.backToCourses')}
+            {t('task.backToCourses') || 'Повернутися до курсів'}
           </Button>
         </Paper>
       </Container>
     );
   }
 
+  // Основний рендер компоненту
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper sx={{ p: 3 }}>
+        {/* Верхній блок: назва задачі і кнопка "Back" */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">{task.title}</Typography>
-          <Box>
-            <Button variant="outlined" onClick={handleBack} sx={{ mr: 2 }}>
-              {t('task.backToCourse')}
-            </Button>
-            {/* Кнопка удаления и диалог удалены для студентов */}
-          </Box>
+          <Button variant="outlined" onClick={handleBack}>
+            {t('task.backToCourse') || 'Назад'}
+          </Button>
         </Box>
 
         <Divider sx={{ mb: 3 }} />
 
+        {/* Блок з інформацією про дедлайн */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {t('task.dueDate')}
+            {t('task.dueDate') || 'Термін виконання'}
           </Typography>
           <Typography variant="body1">
-            {task.due_date && !isNaN(Date.parse(task.due_date))
+            {task.due_date
               ? new Date(task.due_date).toLocaleString()
               : t('task.noDueDate') || '-'}
           </Typography>
         </Box>
 
+        {/* Блок з описом задачі */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {t('task.description')}
+            {t('task.description') || 'Опис'}
           </Typography>
-          <Typography variant="body1">
-            {task.description}
-          </Typography>
+          <Typography variant="body1">{task.description}</Typography>
         </Box>
 
         <Divider sx={{ my: 3 }} />
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">{t('task.yourSqlSolution', 'Your SQL Solution')}</Typography>
+
+        {/* Редактор SQL-коду студента */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6">{t('task.yourSqlSolution') || 'Ваше SQL рішення'}</Typography>
           <Editor
             height="200px"
             defaultLanguage="sql"
@@ -301,62 +352,111 @@ export default function TaskDetailPage() {
             onChange={setStudentSql}
             options={{ minimap: { enabled: false }, fontSize: 14 }}
           />
-          <Button
-            variant="contained"
-            sx={{ mt: 2, mr: 2 }}
-            onClick={async () => {
-              setSubmitting(true);
-              setSubmitResult(null);
-              setResults(null);
-              setExecutionTime(null);
-              try {
-                const res = await api.post(`/api/tasks/${id}/submit/`, { sql: studentSql });
-                setResults(res.data.results || []);
-                setExecutionTime(res.data.execution_time);
-                await loadSchema();
-              } catch (err) {
-                setResults(null);
-                setExecutionTime(null);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            disabled={submitting || !studentSql}
-          >
-            {submitting ? t('task.applying', 'Applying...') : t('task.applySql', 'Apply SQL')}
-          </Button>
         </Box>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
-          <Tab label={t('sql.results', 'Results')} />
-          <Tab label={t('sql.schema', 'Schema')} />
-        </Tabs>
-        {activeTab === 0 && renderResults()}
-        {activeTab === 1 && renderSchema()}
-        {/* Сабмит вынесен вниз, только сравнение эталона и временной БД */}
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
+
+        {/* Кнопка Submit Solution (для порівняння з еталоном) */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
           <Button
             variant="contained"
             color="success"
-            size="large"
-            onClick={handleSubmitSql}
+            onClick={handleSubmitSolution}
             disabled={submitting}
           >
-            {submitting ? t('task.submitting', 'Submitting...') : t('task.submitSolution', 'Submit Solution')}
+            {submitting
+              ? t('task.submitting') || 'Надсилання...'
+              : t('task.submitSolution') || 'Здати рішення'}
           </Button>
-          {submitResult && (
-            <Box sx={{ mt: 2 }}>
-              {submitResult.correct === true && (
-                <Typography color="success.main">{t('task.correct', 'Correct! Your solution matches the reference.')}</Typography>
-              )}
-              {submitResult.correct === false && (
-                <Typography color="warning.main">{t('task.incorrect', 'Incorrect. Please try again.')}</Typography>
-              )}
-              {submitResult.error && (
-                <Typography color="error">{submitResult.error}</Typography>
-              )}
-            </Box>
-          )}
         </Box>
+
+        {/* Кнопка Preview SQL (для виконання змін у тимчасовій БД) */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handlePreviewSql}
+            disabled={executing}
+          >
+            {executing
+              ? t('sql.executing') || 'Виконання...'
+              : t('sql.preview') || 'Переглянути результат'}
+          </Button>
+        </Box>
+
+        {/* Вкладки: Results (результати запиту) та Schema (схема БД) */}
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
+          <Tab label={t('sql.results') || 'Результати'} />
+          <Tab label={t('sql.schema') || 'Схема'} />
+        </Tabs>
+
+        {/* Якщо активна вкладка Results */}
+        {activeTab === 0 && (
+          <Box>
+            {previewResults.length > 0 || executing || previewError
+              ? renderPreviewResults()
+              : <Alert severity="info" sx={{ my: 2 }}>
+                  {t('sql.noPreview') || 'Перегляд результатів не виконано.'}
+                </Alert>}
+          </Box>
+        )}
+
+        {/* Якщо активна вкладка Schema */}
+        {activeTab === 1 && renderSchema()}
+
+        {/* Блок з результатами SUBMIT */}
+        {submitResult && (
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            {/* Якщо правильне рішення */}
+            {submitResult.correct === true && (
+              <Alert severity="success">
+                {t('task.correct') || 'Вірно! Ваше рішення збігається з еталоном.'}
+              </Alert>
+            )}
+            {/* Якщо неправильне рішення */}
+            {submitResult.correct === false && (
+              <Alert severity="warning">
+                {t('task.incorrect') || 'Невірно. Спробуйте ще раз.'}
+              </Alert>
+            )}
+            {/* Якщо є подробиці про різниці */}
+            {submitResult.details && Object.keys(submitResult.details).length > 0 && (
+              <Box sx={{ mt: 2, textAlign: 'left' }}>
+                <Typography variant="subtitle1">
+                  {t('task.differences') || 'Різниці:'}
+                </Typography>
+                {Object.entries(submitResult.details).map(([table, info]) => (
+                  <Box key={table} sx={{ mb: 1 }}>
+                    <Typography variant="body2" fontWeight="bold">
+                      {t('task.table') || 'Таблиця'}: {table}
+                    </Typography>
+                    {info.status === 'row_count_mismatch' ? (
+                      <Typography variant="body2">
+                        {t('task.rowCountMismatch', {
+                          student: info.student_count,
+                          etalon: info.etalon_count
+                        }) ||
+                          `Кількість рядків не збігається: студент=${info.student_count}, еталон=${info.etalon_count}`}
+                      </Typography>
+                    ) : (
+                      info.differences.map((diff, idx) => (
+                        <Typography key={idx} variant="body2">
+                          {t('task.rowMismatch', { row: diff.row_index }) ||
+                            `Рядок ${diff.row_index}: студент=${JSON.stringify(
+                              diff.student_row
+                            )}, еталон=${JSON.stringify(diff.etalon_row)}`}
+                        </Typography>
+                      ))
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
+            {/* Якщо сталася помилка під час submit */}
+            {submitError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {submitError}
+              </Alert>
+            )}
+          </Box>
+        )}
       </Paper>
     </Container>
   );

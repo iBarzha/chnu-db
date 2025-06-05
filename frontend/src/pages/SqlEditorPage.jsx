@@ -3,7 +3,7 @@ import {
   Container, Paper, Typography, Box, Button,
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, CircularProgress, Divider,
-  Tabs, Tab, IconButton, Tooltip, Alert, Chip
+  Tabs, Tab, Alert, Chip
 } from '@mui/material';
 import Editor from '@monaco-editor/react';
 import { useTranslation } from 'react-i18next';
@@ -12,9 +12,7 @@ import api from '../api/auth';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ClearIcon from '@mui/icons-material/Clear';
 import HistoryIcon from '@mui/icons-material/History';
-import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import SchemaIcon from '@mui/icons-material/Schema';
 
 const SQLEditorPage = () => {
   const { t } = useTranslation();
@@ -117,7 +115,7 @@ const SQLEditorPage = () => {
       return;
     }
     if (!selectedDatabase) {
-      setError('Please select a database before running queries.');
+      setError(t('sql.genericMessage'));
       return;
     }
 
@@ -130,7 +128,7 @@ const SQLEditorPage = () => {
         query: sql,
       };
 
-      // Add database_id if a database is selected
+      // Додаємо ідентифікатор бази даних, якщо вона вибрана
       if (selectedDatabase) {
         payload.database_id = selectedDatabase.id;
       }
@@ -140,10 +138,10 @@ const SQLEditorPage = () => {
       setResults(response.data.results || []);
       setExecutionTime(response.data.execution_time);
 
-      // Refresh history after execution
+      // Оновлюємо історію після виконання запиту
       loadHistory();
 
-      // If the query is DDL (CREATE, DROP, ALTER), refresh schema
+      // Якщо запит — DDL (CREATE, DROP, ALTER), оновлюємо схему
       const ddlRegex = /^(\s*)(CREATE|DROP|ALTER)\s+/i;
       if (ddlRegex.test(sql)) {
         try {
@@ -213,7 +211,7 @@ const SQLEditorPage = () => {
       );
     }
 
-    // If we have results with columns, display as table
+    // Якщо є результати з колонками — виводимо таблицю
     if (results.length > 0 && Object.keys(results[0]).length > 0) {
       const columns = Object.keys(results[0]);
 
@@ -255,7 +253,7 @@ const SQLEditorPage = () => {
       );
     }
 
-    // For non-SELECT queries that don't return rows
+    // Для не-SELECT запитів, які не повертають рядки
     return (
       <Alert severity="success" sx={{ my: 2 }}>
         {t('sql.queryExecutedSuccessfully', { count: results.length })}
@@ -373,7 +371,7 @@ const SQLEditorPage = () => {
     );
   };
 
-  // Render different content based on user role
+  // Відображення контенту залежно від ролі користувача
   const renderRoleSpecificContent = () => {
     if (!user) {
       return (
