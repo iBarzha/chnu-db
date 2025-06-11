@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Manager
 import os
@@ -121,6 +121,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -179,11 +180,23 @@ class TaskViewSet(viewsets.ModelViewSet):
 
             # Робимо дамп результату в файл і зберігаємо в task.etalon_db
             with tempfile.NamedTemporaryFile(suffix='.sql', delete=False) as tmpfile:
-                dump_cmd = (
-                    f"pg_dump -U {db_config['USER']} "
-                    f"-h {db_config['HOST']} -p {db_config['PORT']} "
-                    f"{temp_db_name} > {tmpfile.name}"
-                )
+                if os.name == 'nt':
+                    # Windows
+                    dump_cmd = (
+                        f'set PGPASSWORD={db_config["PASSWORD"]} && '
+                        f'pg_dump -U {db_config["USER"]} '
+                        f'-h {db_config["HOST"]} -p {db_config["PORT"]} '
+                        f'{temp_db_name} > "{tmpfile.name}"'
+                    )
+                else:
+                    # Linux/Mac
+                    dump_cmd = (
+                        f'PGPASSWORD={db_config["PASSWORD"]} '
+                        f'pg_dump -U {db_config["USER"]} '
+                        f'-h {db_config["HOST"]} -p {db_config["PORT"]} '
+                        f'{temp_db_name} > "{tmpfile.name}"'
+                    )
+
                 os.system(dump_cmd)
                 tmpfile.flush()
                 with open(tmpfile.name, 'rb') as dumpf:
@@ -203,235 +216,166 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         return Response({'status': 'Еталонну БД збережено.'})
 
-    @action(detail=True, methods=['post'], url_path='submit', permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'], url_path='submit')
     def submit(self, request, pk=None):
         """
-        Порівняти поточний стан тимчасової БД студента з еталонним дампом.
-        Якщо тимчасової БД студента ще не існує – створюємо її з початкового дампу (без змін).
+        Порівняти стан студентської БД з еталонним дампом.
         """
         task = self.get_object()
-
-        # Переконаємося, що оригінальний та еталонний дампи існують
         if not task.original_db or not task.etalon_db:
             return Response({'error': 'Задача налаштована не повністю.'}, status=400)
 
-        db_config = settings.DATABASES['default']
-        session_key = request.session.session_key or request._request.COOKIES.get('sessionid')
+        # Налаштування підключення до PostgreSQL
+        db_conf = settings.DATABASES['default']
+        conn_params = {
+            'dbname': db_conf['NAME'],
+            'user': db_conf['USER'],
+            'password': db_conf['PASSWORD'],
+            'host': db_conf['HOST'],
+            'port': db_conf['PORT'],
+        }
+
+        ## Генеруємо session_key для тимчасової БД
+        session_key = request.session.session_key
         if not session_key:
             request.session.save()
             session_key = request.session.session_key
 
-        # 1) Знайдемо або створимо Тимчасову БД студента для цієї задачі
-        temp_db = None
-        try:
-            temp_db = TemporaryDatabase.objects.get(
-                user=request.user,
-                teacher_database=None,
-                session_key=session_key,
-                database_name__startswith=f"task_{task.id}_"
-            )
-        except TemporaryDatabase.DoesNotExist:
-            temp_db = None
+        # Формуємо унікальні імена баз
+        student_db_name = f"task_{task.id}_{request.user.id}_{session_key[:8]}"
+        etalon_db_name = f"etalon_{uuid.uuid4().hex[:16]}"
 
-        if not temp_db:
-            # Тимчасової БД немає – створюємо нову з початкового дампу (task.original_db)
-            # Ім'я нової бази
-            new_db_name = f"task_{task.id}_{request.user.id}_{session_key[:8]}_{uuid.uuid4().hex[:8]}"
-            admin_conn = psycopg2.connect(
-                dbname=db_config['NAME'],
-                user=db_config['USER'],
-                password=db_config['PASSWORD'],
-                host=db_config['HOST'],
-                port=db_config['PORT']
-            )
-            admin_conn.autocommit = True
-            admin_cursor = admin_conn.cursor()
-            try:
-                admin_cursor.execute(f"CREATE DATABASE {new_db_name}")
-                # Відновлюємо початковий дамп у нову базу
-                student_conn = psycopg2.connect(
-                    dbname=new_db_name,
-                    user=db_config['USER'],
-                    password=db_config['PASSWORD'],
-                    host=db_config['HOST'],
-                    port=db_config['PORT']
-                )
-                student_conn.autocommit = True
-                student_cur = student_conn.cursor()
-                with open(task.original_db.path, 'r') as f:
-                    student_cur.execute(f.read())
-                student_cur.close()
-                student_conn.close()
-
-                # Записуємо запис у TemporaryDatabase
-                temp_db = TemporaryDatabase.objects.create(
-                    user=request.user,
-                    teacher_database=None,
-                    database_name=new_db_name,
-                    session_key=session_key
-                )
-            except Exception as e:
-                # Якщо щось пішло не так, видаляємо новостворену базу і повертаємо помилку
-                try:
-                    admin_cursor.execute(f"DROP DATABASE IF EXISTS {new_db_name}")
-                except:
-                    pass
-                admin_cursor.close()
-                admin_conn.close()
-                return Response({'error': f'Не вдалося створити тимчасову БД: {str(e)}'}, status=400)
-
-            admin_cursor.close()
-            admin_conn.close()
-
-        # У цьому місці temp_db точно існує
-        student_db_name = temp_db.database_name
-
-        # 2) Створюємо окремо еталонну БД для порівняння
-        admin_conn = psycopg2.connect(
-            dbname=db_config['NAME'],
-            user=db_config['USER'],
-            password=db_config['PASSWORD'],
-            host=db_config['HOST'],
-            port=db_config['PORT']
-        )
+        # Адмінське підключення для створення/скидання БД
+        admin_conn = psycopg2.connect(**conn_params)
         admin_conn.autocommit = True
-        admin_cursor = admin_conn.cursor()
+        admin_cur = admin_conn.cursor()
 
-        etalon_db_name = f"etalon_db_{uuid.uuid4().hex[:16]}"
-        try:
-            # Створюємо еталонну БД
-            admin_cursor.execute(f"CREATE DATABASE {etalon_db_name}")
-            etalon_conn = psycopg2.connect(
-                dbname=etalon_db_name,
-                user=db_config['USER'],
-                password=db_config['PASSWORD'],
-                host=db_config['HOST'],
-                port=db_config['PORT']
+        # 1) Підготуємо студентську БД: скинемо існуючу та створимо нову
+        admin_cur.execute(f'DROP DATABASE IF EXISTS "{student_db_name}"')
+        admin_cur.execute(f'CREATE DATABASE "{student_db_name}"')
+        # Імпортуємо початковий дамп через shell-утиліту
+        if os.name == 'nt':
+            # Windows
+            psql_cmd = (
+                f'set PGPASSWORD={conn_params["password"]} && '
+                f'psql -U {conn_params["user"]} '
+                f'-h {conn_params["host"]} -p {conn_params["port"]} '
+                f'-d {student_db_name} -f "{task.original_db.path}"'
             )
-            etalon_conn.autocommit = True
-            etalon_cur = etalon_conn.cursor()
-
-            # Відновлюємо початковий дамп у еталонну БД
-            with open(task.original_db.path, 'r') as f:
-                etalon_cur.execute(f.read())
-
-            # Застосовуємо еталонний SQL (teacher script)
-            with open(task.etalon_db.path, 'r') as f:
-                etalon_cur.execute(f.read())
-
-            # 3) Порівняння вмісту таблиць:
-            correct = True
-            details = {}
-
-            # Відкриваємо з’єднання до student_db (тимчасова база студента)
-            student_conn = psycopg2.connect(
-                dbname=student_db_name,
-                user=db_config['USER'],
-                password=db_config['PASSWORD'],
-                host=db_config['HOST'],
-                port=db_config['PORT']
+        else:
+            # Linux/Mac
+            psql_cmd = (
+                f'PGPASSWORD={conn_params["password"]} '
+                f'psql -U {conn_params["user"]} '
+                f'-h {conn_params["host"]} -p {conn_params["port"]} '
+                f'-d {student_db_name} -f "{task.original_db.path}"'
             )
-            student_conn.autocommit = True
-            student_cur = student_conn.cursor()
 
-            # 3.1) Отримуємо всі таблиці з public у студентській базі
-            student_cur.execute("""
-                                SELECT table_name
-                                FROM information_schema.tables
-                                WHERE table_schema = 'public'
-                                ORDER BY table_name;
-                                """)
-            tables = [row[0] for row in student_cur.fetchall()]
+        os.system(psql_cmd)
 
-            for table in tables:
-                # 3.2) Знаходимо первинний ключ (PK) таблиці
-                student_cur.execute("""
-                                    SELECT a.attname
-                                    FROM pg_index i
-                                             JOIN pg_attribute a
-                                                  ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
-                                    WHERE i.indrelid = %s::regclass
-                         AND i.indisprimary;
-                                    """, (table,))
-                pk_columns = [r[0] for r in student_cur.fetchall()]
+        # Очищаємо старі тимчасові записи й додаємо поточну
+        TemporaryDatabase.objects.filter(
+            user=request.user,
+            session_key=session_key
+        ).delete()
+        TemporaryDatabase.objects.create(
+            user=request.user,
+            session_key=session_key,
+            database_name=student_db_name
+        )
 
-                if pk_columns:
-                    order_clause = ", ".join(pk_columns)
-                else:
-                    # Якщо немає PK, сортуємо за всіма колонками
-                    student_cur.execute("""
-                                        SELECT column_name
-                                        FROM information_schema.columns
-                                        WHERE table_name = %s
-                                        ORDER BY ordinal_position;
-                                        """, (table,))
-                    cols = [r[0] for r in student_cur.fetchall()]
-                    order_clause = ", ".join(cols)
+        # 2) Підготуємо еталонну БД
+        admin_cur.execute(f'DROP DATABASE IF EXISTS "{etalon_db_name}"')
+        admin_cur.execute(f'CREATE DATABASE "{etalon_db_name}"')
+        if os.name == 'nt':
+            psql_cmd = (
+                f'set PGPASSWORD={conn_params["password"]} && '
+                f'psql -U {conn_params["user"]} '
+                f'-h {conn_params["host"]} -p {conn_params["port"]} '
+                f'-d {etalon_db_name} -f "{task.etalon_db.path}"'
+            )
+        else:
+            psql_cmd = (
+                f'PGPASSWORD={conn_params["password"]} '
+                f'psql -U {conn_params["user"]} '
+                f'-h {conn_params["host"]} -p {conn_params["port"]} '
+                f'-d {etalon_db_name} -f "{task.etalon_db.path}"'
+            )
+        os.system(psql_cmd)
 
-                # 3.3) Вибираємо всі рядки з student_db
-                student_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
-                student_rows = student_cur.fetchall()
+        # 3) Порівняння вмісту таблиць
+        student_conn_params = conn_params.copy()
+        student_conn_params['dbname'] = student_db_name
+        student_conn = psycopg2.connect(**student_conn_params)
+        student_cur = student_conn.cursor()
 
-                # 3.4) Вибираємо всі рядки з etalon_db
-                etalon_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
-                etalon_rows = etalon_cur.fetchall()
+        etalon_conn_params = conn_params.copy()
+        etalon_conn_params['dbname'] = etalon_db_name
+        etalon_conn = psycopg2.connect(**etalon_conn_params)
+        etalon_cur = etalon_conn.cursor()
 
-                # 3.5) Порівнюємо кількість рядків
-                if len(student_rows) != len(etalon_rows):
+        student_cur.execute(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' ORDER BY table_name;"
+        )
+        tables = [r[0] for r in student_cur.fetchall()]
+
+        correct = True
+        details = {}
+
+        for table in tables:
+            # Визначаємо PK або всі колонки для сортування
+            student_cur.execute(
+                "SELECT a.attname FROM pg_index i "
+                "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
+                "WHERE i.indrelid = %s::regclass AND i.indisprimary;", (table,)
+            )
+            pks = [r[0] for r in student_cur.fetchall()]
+            if pks:
+                order_clause = ",".join(pks)
+            else:
+                student_cur.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = %s ORDER BY ordinal_position;", (table,)
+                )
+                order_clause = ",".join([r[0] for r in student_cur.fetchall()])
+
+            student_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
+            s_rows = student_cur.fetchall()
+            etalon_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
+            e_rows = etalon_cur.fetchall()
+
+            if len(s_rows) != len(e_rows):
+                correct = False
+                details[table] = {
+                    'status': 'row_count_mismatch',
+                    'student_count': len(s_rows),
+                    'etalon_count': len(e_rows)
+                }
+                continue
+
+            for idx, (s, e) in enumerate(zip(s_rows, e_rows)):
+                if s != e:
                     correct = False
-                    details[table] = {
-                        'status': 'row_count_mismatch',
-                        'student_count': len(student_rows),
-                        'etalon_count': len(etalon_rows)
-                    }
-                    continue
+                    details.setdefault(table, {'status': 'row_data_mismatch', 'differences': []})
+                    details[table]['differences'].append({
+                        'row_index': idx,
+                        'student': s,
+                        'etalon': e
+                    })
 
-                # 3.6) Порівнюємо самі рядки
-                for idx, s_row in enumerate(student_rows):
-                    e_row = etalon_rows[idx]
-                    if s_row != e_row:
-                        correct = False
-                        details.setdefault(table, {
-                            'status': 'row_data_mismatch',
-                            'differences': []
-                        })
-                        details[table]['differences'].append({
-                            'row_index': idx,
-                            'student_row': s_row,
-                            'etalon_row': e_row
-                        })
+        # Закриваємо з'єднання
+        student_cur.close();
+        student_conn.close()
+        etalon_cur.close();
+        etalon_conn.close()
 
-            # Закриваємо курсори та з’єднання
-            student_cur.close()
-            student_conn.close()
-            etalon_cur.close()
-            etalon_conn.close()
-
-        except Exception as e:
-            # Якщо сталася помилка, видаляємо еталонну БД і повертаємо помилку
-            try:
-                admin_cursor.execute(f"DROP DATABASE IF EXISTS {etalon_db_name}")
-            except:
-                pass
-            admin_cursor.close()
-            admin_conn.close()
-            return Response({'error': str(e)}, status=400)
-
-        # 4) Видаляємо еталонну БД після порівняння
-        try:
-            admin_cursor.execute(f"DROP DATABASE IF EXISTS {etalon_db_name}")
-        except:
-            pass
-
-        admin_cursor.close()
+        # Видаляємо тимчасову еталонну БД
+        admin_cur.execute(f'DROP DATABASE IF EXISTS "{etalon_db_name}"')
+        admin_cur.close();
         admin_conn.close()
 
-        # 5) Повертаємо результат порівняння
-        return Response({
-            'correct': correct,
-            'details': details
-        })
-
+        return Response({'correct': correct, 'details': details})
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])

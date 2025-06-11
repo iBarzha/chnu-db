@@ -1,199 +1,159 @@
-import { Box, Button, Container, Paper, TextField, Typography, MenuItem, Select, InputLabel, FormControl, CircularProgress, Grid, List, ListItem, ListItemText, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Divider } from '@mui/material';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
+// TaskCreatePage.jsx
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  TextField,
+  Typography,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  Alert,
+  CircularProgress
+} from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import api from '../api/auth';
-import { useEffect, useState } from 'react';
-import Editor from '@monaco-editor/react';
-import React from 'react';
-
-const validationSchema = Yup.object({
-  title: Yup.string().required('Title is required'),
-  description: Yup.string().required('Description is required'),
-  due_date: Yup.date().nullable(),
-  teacher_database: Yup.string().required('Database selection is required'),
-  reference_database: Yup.string().required('Reference database selection is required'),
-});
 
 export default function TaskCreatePage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [course, setCourse] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [databases, setDatabases] = useState([]);
-  const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Завантаження даних курсу при монтуванні
+  const [course, setCourse] = useState(null);
+  const [databases, setDatabases] = useState([]);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    due_date: '',
+    teacher_database: '',
+    reference_database: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    if (courseId) {
-      setLoading(true);
-      api.get(`/api/courses/${courseId}/`)
-        .then(res => {
-          setCourse(res.data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Error fetching course:', err);
-          setLoading(false);
-        });
-    }
+    (async () => {
+      try {
+        const [cRes, dbRes] = await Promise.all([
+          api.get(`/api/courses/${courseId}/`),
+          api.get('/api/teacher-databases/')
+        ]);
+        setCourse(cRes.data);
+        setDatabases(dbRes.data);
+      } catch {
+        setError('Не вдалося завантажити дані.');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [courseId]);
 
-  // Завантаження списку баз даних вчителя при монтуванні
-  useEffect(() => {
-    api.get('/api/teacher-databases/')
-      .then(res => {
-        setDatabases(res.data);
-      })
-      .catch(err => {
-        console.error('Error fetching databases:', err);
-      });
-  }, []);
+  const handleChange = e =>
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const formik = useFormik({
-    initialValues: {
-      title: '',
-      description: '',
-      due_date: null,
-      teacher_database: '',
-      reference_database: ''
-    },
-    validationSchema,
-    onSubmit: async (values) => {
-      if (isSubmitting) return;
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
 
-      try {
-        setIsSubmitting(true);
-        setError(null);
+    try {
+      // 1) Отримуємо URL дампів
+      const selRes = await api.get(`/api/teacher-databases/${form.teacher_database}/`);
+      const refRes = await api.get(`/api/teacher-databases/${form.reference_database}/`);
 
-        // Get the selected database
-        const selectedDb = await api.get(`/api/teacher-databases/${values.teacher_database}/`);
-        if (!selectedDb.data.sql_dump) {
-          throw new Error('Selected database has no SQL dump file');
-        }
-
-        // Get the reference database
-        const referenceDb = await api.get(`/api/teacher-databases/${values.reference_database}/`);
-        if (!referenceDb.data.sql_dump) {
-          throw new Error('Reference database has no SQL dump file');
-        }
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('title', values.title);
-        formData.append('description', values.description);
-        if (values.due_date) {
-          formData.append('due_date', new Date(values.due_date).toISOString());
-        }
-        formData.append('course', courseId); // Привязка таска к курсу
-
-        // Fetch the SQL dump file and attach it as original_db
-        const response = await fetch(selectedDb.data.sql_dump);
-        const blob = await response.blob();
-        formData.append('original_db', blob, 'database.sql');
-
-        // Fetch the reference SQL dump and attach as reference_db
-        const refResponse = await fetch(referenceDb.data.sql_dump);
-        const refBlob = await refResponse.blob();
-        formData.append('reference_db', refBlob, 'reference_database.sql');
-
-        console.log('Submitting task data:', values);
-        const taskResponse = await api.post('/api/tasks/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        console.log('Server response:', taskResponse);
-        navigate(`/courses/${courseId}`);
-      } catch (err) {
-        console.error('Detailed error:', err.response || err);
-        let errorMessage = 'Failed to create task';
-        if (err.response) {
-          errorMessage = err.response.data?.detail || err.response.data?.message || JSON.stringify(err.response.data) || err.response.statusText;
-        }
-        setError(errorMessage);
-      } finally {
-        setIsSubmitting(false);
+      // 2) Формуємо FormData
+      const fd = new FormData();
+      fd.append('title', form.title);
+      fd.append('description', form.description);
+      if (form.due_date) {
+        fd.append('due_date', new Date(form.due_date).toISOString());
       }
-    },
-  });
+      fd.append('course', courseId);
 
-  // Обробка скасування створення завдання
-  const handleCancel = () => {
-    navigate(`/courses/${courseId}`);
+      // 3) Завантажуємо дампи та додаємо як файли
+      const blob1 = await (await fetch(selRes.data.sql_dump)).blob();
+      fd.append('original_db', blob1, 'original.sql');
+
+      const blob2 = await (await fetch(refRes.data.sql_dump)).blob();
+      fd.append('etalon_db', blob2, 'reference.sql');
+
+      // Debug: переконайтесь, що в fd є обидва ключі
+      for (let [k, v] of fd.entries()) {
+        console.log(k, v);
+      }
+
+      // 4) Відправляємо multipart/form-data
+      await api.post('/api/tasks/', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      navigate(`/courses/${courseId}`);
+    } catch (err) {
+      console.error(err);
+      const data = err.response?.data;
+      setError(
+        data?.error ||
+        (data && Object.values(data)[0]) ||
+        err.message
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <Container sx={{ textAlign: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        {t('course.createTask')}
+        Створити завдання
       </Typography>
 
       {course && (
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          {t('course.courses')}: {course.title}
+          Курс: {course.title}
         </Typography>
       )}
-
       {error && (
-        <Paper sx={{ p: 2, mb: 3, bgcolor: 'error.light', color: 'error.contrastText' }}>
-          <Typography variant="body1">{error}</Typography>
-        </Paper>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
       )}
 
-      <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
+      <Box component="form" onSubmit={handleSubmit}>
         <Paper sx={{ p: 3, mb: 3 }}>
-          {/* Поле для назви завдання */}
           <TextField
-            fullWidth
-            label={t('task.title')}
-            name="title"
-            value={formik.values.title}
-            onChange={formik.handleChange}
-            error={formik.touched.title && Boolean(formik.errors.title)}
-            helperText={formik.touched.title && formik.errors.title}
-            sx={{ mb: 3 }}
+            fullWidth label="Назва" name="title"
+            value={form.title} onChange={handleChange}
+            required sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth label="Опис" name="description" multiline rows={4}
+            value={form.description} onChange={handleChange}
+            required sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth label="Термін" name="due_date" type="datetime-local"
+            value={form.due_date} onChange={handleChange}
+            InputLabelProps={{ shrink: true }} sx={{ mb: 2 }}
           />
 
-          {/* Поле для опису завдання */}
-          <TextField
-            fullWidth
-            label={t('task.description')}
-            name="description"
-            multiline
-            rows={6}
-            value={formik.values.description}
-            onChange={formik.handleChange}
-            error={formik.touched.description && Boolean(formik.errors.description)}
-            helperText={formik.touched.description && formik.errors.description}
-            sx={{ mb: 3 }}
-          />
-
-          {/* Поле для дати дедлайну */}
-          <TextField
-            fullWidth
-            label={t('task.dueDate')}
-            name="due_date"
-            type="datetime-local"
-            value={formik.values.due_date || ''}
-            onChange={formik.handleChange}
-            InputLabelProps={{
-              shrink: true,
-            }}
-            sx={{ mb: 3 }}
-          />
-
-          {/* Вибір бази даних */}
-          <FormControl fullWidth sx={{ mb: 3 }} error={formik.touched.teacher_database && Boolean(formik.errors.teacher_database)}>
-            <InputLabel>{t('task.selectDatabase')}</InputLabel>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Початковий дамп</InputLabel>
             <Select
               name="teacher_database"
-              value={formik.values.teacher_database}
-              onChange={formik.handleChange}
-              label={t('task.selectDatabase')}
+              value={form.teacher_database}
+              onChange={handleChange}
+              required
             >
               {databases.map(db => (
                 <MenuItem key={db.id} value={db.id}>
@@ -203,14 +163,13 @@ export default function TaskCreatePage() {
             </Select>
           </FormControl>
 
-          {/* Вибір бази даних для еталонного рішення */}
-          <FormControl fullWidth sx={{ mb: 3 }} error={formik.touched.reference_database && Boolean(formik.errors.reference_database)}>
-            <InputLabel>{t('task.selectReferenceDatabase')}</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel>Еталонний дамп</InputLabel>
             <Select
               name="reference_database"
-              value={formik.values.reference_database}
-              onChange={formik.handleChange}
-              label={t('task.selectReferenceDatabase')}
+              value={form.reference_database}
+              onChange={handleChange}
+              required
             >
               {databases.map(db => (
                 <MenuItem key={db.id} value={db.id}>
@@ -221,20 +180,12 @@ export default function TaskCreatePage() {
           </FormControl>
         </Paper>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-          <Button
-            variant="outlined"
-            onClick={handleCancel}
-          >
-            {t('course.cancel')}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Button variant="outlined" onClick={() => navigate(-1)} disabled={submitting}>
+            Скасувати
           </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t('common.submitting') : t('course.createTask')}
+          <Button type="submit" variant="contained" disabled={submitting}>
+            {submitting ? 'Завантаження…' : 'Створити завдання'}
           </Button>
         </Box>
       </Box>
