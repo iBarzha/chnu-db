@@ -221,11 +221,14 @@ class TaskViewSet(viewsets.ModelViewSet):
         """
         Порівняти стан студентської БД з еталонним дампом.
         """
+        import uuid, os
+        from django.conf import settings
+        from rest_framework.response import Response
+
         task = self.get_object()
         if not task.original_db or not task.etalon_db:
             return Response({'error': 'Задача налаштована не повністю.'}, status=400)
 
-        # Налаштування підключення до PostgreSQL
         db_conf = settings.DATABASES['default']
         conn_params = {
             'dbname': db_conf['NAME'],
@@ -235,56 +238,29 @@ class TaskViewSet(viewsets.ModelViewSet):
             'port': db_conf['PORT'],
         }
 
-        ## Генеруємо session_key для тимчасової БД
         session_key = request.session.session_key
         if not session_key:
             request.session.save()
             session_key = request.session.session_key
 
-        # Формуємо унікальні імена баз
-        student_db_name = f"task_{task.id}_{request.user.id}_{session_key[:8]}"
-        etalon_db_name = f"etalon_{uuid.uuid4().hex[:16]}"
+        db_prefix = f"task_{task.id}_{request.user.id}_{session_key[:8]}"
+        temp_db = TemporaryDatabase.objects.filter(
+            user=request.user,
+            session_key=session_key,
+            teacher_database=None,
+            database_name__startswith=db_prefix
+        ).first()
 
-        # Адмінське підключення для створення/скидання БД
+        if not temp_db:
+            return Response({'error': 'Робоча база не знайдена!'}, status=400)
+        student_db_name = temp_db.database_name
+
+        etalon_db_name = f"etalon_{uuid.uuid4().hex[:16]}"
         admin_conn = psycopg2.connect(**conn_params)
         admin_conn.autocommit = True
         admin_cur = admin_conn.cursor()
 
-        # 1) Підготуємо студентську БД: скинемо існуючу та створимо нову
-        admin_cur.execute(f'DROP DATABASE IF EXISTS "{student_db_name}"')
-        admin_cur.execute(f'CREATE DATABASE "{student_db_name}"')
-        # Імпортуємо початковий дамп через shell-утиліту
-        if os.name == 'nt':
-            # Windows
-            psql_cmd = (
-                f'set PGPASSWORD={conn_params["password"]} && '
-                f'psql -U {conn_params["user"]} '
-                f'-h {conn_params["host"]} -p {conn_params["port"]} '
-                f'-d {student_db_name} -f "{task.original_db.path}"'
-            )
-        else:
-            # Linux/Mac
-            psql_cmd = (
-                f'PGPASSWORD={conn_params["password"]} '
-                f'psql -U {conn_params["user"]} '
-                f'-h {conn_params["host"]} -p {conn_params["port"]} '
-                f'-d {student_db_name} -f "{task.original_db.path}"'
-            )
-
-        os.system(psql_cmd)
-
-        # Очищаємо старі тимчасові записи й додаємо поточну
-        TemporaryDatabase.objects.filter(
-            user=request.user,
-            session_key=session_key
-        ).delete()
-        TemporaryDatabase.objects.create(
-            user=request.user,
-            session_key=session_key,
-            database_name=student_db_name
-        )
-
-        # 2) Підготуємо еталонну БД
+        # --- Тільки ЕТАЛОННУ БД створюємо! ---
         admin_cur.execute(f'DROP DATABASE IF EXISTS "{etalon_db_name}"')
         admin_cur.execute(f'CREATE DATABASE "{etalon_db_name}"')
         if os.name == 'nt':
@@ -303,7 +279,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
         os.system(psql_cmd)
 
-        # 3) Порівняння вмісту таблиць
+        # --- Підключення і порівняння ---
         student_conn_params = conn_params.copy()
         student_conn_params['dbname'] = student_db_name
         student_conn = psycopg2.connect(**student_conn_params)
@@ -314,35 +290,62 @@ class TaskViewSet(viewsets.ModelViewSet):
         etalon_conn = psycopg2.connect(**etalon_conn_params)
         etalon_cur = etalon_conn.cursor()
 
+        # --- Збираємо таблиці ---
         student_cur.execute(
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;"
         )
-        tables = [r[0] for r in student_cur.fetchall()]
+        student_tables = set(r[0] for r in student_cur.fetchall())
 
-        correct = True
+        etalon_cur.execute(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' ORDER BY table_name;"
+        )
+        etalon_tables = set(r[0] for r in etalon_cur.fetchall())
+
+        extra_tables = student_tables - etalon_tables
+        missing_tables = etalon_tables - student_tables
+        common_tables = student_tables & etalon_tables
+
         details = {}
 
-        for table in tables:
-            # Визначаємо PK або всі колонки для сортування
-            student_cur.execute(
-                "SELECT a.attname FROM pg_index i "
-                "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
-                "WHERE i.indrelid = %s::regclass AND i.indisprimary;", (table,)
-            )
-            pks = [r[0] for r in student_cur.fetchall()]
-            if pks:
-                order_clause = ",".join(pks)
-            else:
-                student_cur.execute(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = %s ORDER BY ordinal_position;", (table,)
-                )
-                order_clause = ",".join([r[0] for r in student_cur.fetchall()])
+        # Зайві таблиці
+        for table in extra_tables:
+            details[table] = {
+                'status': 'extra_table',
+                'message': 'Таблиця створена студентом, але її немає в еталоні.'
+            }
 
-            student_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
+        # Відсутні у студента таблиці
+        for table in missing_tables:
+            details[table] = {
+                'status': 'missing_table',
+                'message': 'Таблиця повинна бути, але студент її не створив.'
+            }
+
+        correct = not extra_tables and not missing_tables
+
+        # Порівнюємо лише спільні таблиці
+        for table in common_tables:
+            if not table:
+                continue
+
+            # 1. Отримуємо всі колонки і їх типи (в правильному порядку)
+            student_cur.execute(
+                "SELECT column_name, data_type FROM information_schema.columns "
+                "WHERE table_name = %s ORDER BY ordinal_position;", (table,)
+            )
+            col_info = student_cur.fetchall()
+            columns = [r[0] for r in col_info]
+            column_types = [r[1] for r in col_info]
+            compare_idx = [i for i, typ in enumerate(column_types) if 'timestamp' not in typ]
+
+            columns_clause = ", ".join([f'"{col}"' for col in columns])
+            order_clause = ", ".join([f'"{col}"' for col in columns])
+
+            student_cur.execute(f'SELECT {columns_clause} FROM "{table}" ORDER BY {order_clause};')
             s_rows = student_cur.fetchall()
-            etalon_cur.execute(f"SELECT * FROM {table} ORDER BY {order_clause};")
+            etalon_cur.execute(f'SELECT {columns_clause} FROM "{table}" ORDER BY {order_clause};')
             e_rows = etalon_cur.fetchall()
 
             if len(s_rows) != len(e_rows):
@@ -354,28 +357,41 @@ class TaskViewSet(viewsets.ModelViewSet):
                 }
                 continue
 
+            def row_to_str(row):
+                return tuple(str(row[i]) if row[i] is not None else 'NULL' for i in compare_idx)
+
             for idx, (s, e) in enumerate(zip(s_rows, e_rows)):
-                if s != e:
+                if row_to_str(s) != row_to_str(e):
+                    diff_columns = []
+                    for i in compare_idx:
+                        if str(s[i]) != str(e[i]):
+                            diff_columns.append({
+                                'column': columns[i],
+                                'student_value': s[i],
+                                'etalon_value': e[i],
+                            })
                     correct = False
                     details.setdefault(table, {'status': 'row_data_mismatch', 'differences': []})
                     details[table]['differences'].append({
                         'row_index': idx,
-                        'student': s,
-                        'etalon': e
+                        'student': [s[i] for i in compare_idx],  # тільки значущі!
+                        'etalon': [e[i] for i in compare_idx],  # тільки значущі!
+                        'diff_columns': diff_columns
                     })
 
         # Закриваємо з'єднання
-        student_cur.close();
+        student_cur.close()
         student_conn.close()
-        etalon_cur.close();
+        etalon_cur.close()
         etalon_conn.close()
 
         # Видаляємо тимчасову еталонну БД
         admin_cur.execute(f'DROP DATABASE IF EXISTS "{etalon_db_name}"')
-        admin_cur.close();
+        admin_cur.close()
         admin_conn.close()
 
         return Response({'correct': correct, 'details': details})
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])

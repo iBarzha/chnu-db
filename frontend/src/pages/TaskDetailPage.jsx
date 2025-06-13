@@ -418,37 +418,69 @@ export default function TaskDetailPage() {
             )}
             {/* Якщо є подробиці про різниці */}
             {submitResult.details && Object.keys(submitResult.details).length > 0 && (
-              <Box sx={{ mt: 2, textAlign: 'left' }}>
-                <Typography variant="subtitle1">
-                  {t('task.differences') || 'Різниці:'}
-                </Typography>
-                {Object.entries(submitResult.details).map(([table, info]) => (
-                  <Box key={table} sx={{ mb: 1 }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      {t('task.table') || 'Таблиця'}: {table}
+  <Box sx={{ mt: 2, textAlign: 'left' }}>
+    <Typography variant="subtitle1">
+      {t('task.differences') || 'Різниці:'}
+    </Typography>
+    {Object.entries(submitResult.details).map(([table, info]) => (
+      <Box key={table} sx={{ mb: 2, p: 1, border: '1px solid #eee', borderRadius: 2 }}>
+        <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+          {t('task.table') || 'Таблиця'}: {table}
+        </Typography>
+        {info.status === 'row_count_mismatch' ? (
+          <Typography variant="body2" color="error">
+            {t('task.rowCountMismatch', {
+              student: info.student_count,
+              etalon: info.etalon_count
+            }) ||
+              `Кількість рядків не збігається: студент=${info.student_count}, еталон=${info.etalon_count}`}
+          </Typography>
+        ) : info.status === 'extra_table' ? (
+          <Typography variant="body2" color="warning.main">
+            {info.message || 'Таблиця створена студентом, але її немає в еталоні.'}
+          </Typography>
+        ) : info.status === 'missing_table' ? (
+          <Typography variant="body2" color="error.main">
+            {info.message || 'Таблиця повинна бути, але студент її не створив.'}
+          </Typography>
+        ) : info.differences ? (
+          info.differences.map((diff, idx) => (
+            <Box key={idx} sx={{ mb: 1, pl: 2 }}>
+              <Typography variant="body2">
+                Рядок {diff.row_index}
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', ml: 2 }}>
+                Студент: {JSON.stringify(diff.student)}
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', ml: 2 }}>
+                Еталон: {JSON.stringify(diff.etalon)}
+              </Typography>
+              {diff.diff_columns && diff.diff_columns.length > 0 && (
+                <Box sx={{ mt: 1, mb: 1, ml: 3 }}>
+                  <Typography variant="body2" fontWeight="bold">
+                    Відмінності у колонках:
+                  </Typography>
+                  {diff.diff_columns.map((col, colIdx) => (
+                    <Typography
+                      key={colIdx}
+                      variant="body2"
+                      color="error"
+                      sx={{ fontFamily: 'monospace', ml: 2 }}
+                    >
+                      {col.column}: студент = {String(col.student_value)}, еталон = {String(col.etalon_value)}
                     </Typography>
-                    {info.status === 'row_count_mismatch' ? (
-                      <Typography variant="body2">
-                        {t('task.rowCountMismatch', {
-                          student: info.student_count,
-                          etalon: info.etalon_count
-                        }) ||
-                          `Кількість рядків не збігається: студент=${info.student_count}, еталон=${info.etalon_count}`}
-                      </Typography>
-                    ) : (
-                      info.differences.map((diff, idx) => (
-                        <Typography key={idx} variant="body2">
-                          {t('task.rowMismatch', { row: diff.row_index }) ||
-                            `Рядок ${diff.row_index}: студент=${JSON.stringify(
-                              diff.student_row
-                            )}, еталон=${JSON.stringify(diff.etalon_row)}`}
-                        </Typography>
-                      ))
-                    )}
-                  </Box>
-                ))}
-              </Box>
-            )}
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ))
+        ) : null}
+      </Box>
+    ))}
+  </Box>
+)}
+
+
             {/* Якщо сталася помилка під час submit */}
             {submitError && (
               <Alert severity="error" sx={{ mt: 2 }}>
