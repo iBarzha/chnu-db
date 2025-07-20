@@ -110,10 +110,18 @@ const SQLEditorPage = () => {
   };
 
   const handleExecute = async () => {
-    if (!sql.trim()) {
+    const trimmedSql = sql.trim();
+    if (!trimmedSql) {
       setError(t('sql.enterSqlQuery'));
       return;
     }
+    
+    // Client-side validation for better UX
+    if (trimmedSql.length > 10000) {
+      setError('Запит надто довгий (максимум 10000 символів)');
+      return;
+    }
+    
     if (!selectedDatabase) {
       setError(t('sql.genericMessage'));
       return;
@@ -122,24 +130,26 @@ const SQLEditorPage = () => {
     setExecuting(true);
     setError(null);
     setResults(null);
+    setExecutionTime(null);
 
     try {
       const payload = {
-        query: sql,
+        query: trimmedSql,
+        database_id: selectedDatabase.id,
       };
-
-      // Додаємо ідентифікатор бази даних, якщо вона вибрана
-      if (selectedDatabase) {
-        payload.database_id = selectedDatabase.id;
-      }
 
       const response = await api.post('/api/execute-sql/', payload);
 
       setResults(response.data.results || []);
       setExecutionTime(response.data.execution_time);
+      
+      // Handle warnings for truncated results
+      if (response.data.warning) {
+        setError(`Увага: ${response.data.warning}`);
+      }
 
-      // Оновлюємо історію після виконання запиту
-      loadHistory();
+      // Оновлюємо історію після виконання запиту (debounced for performance)
+      setTimeout(loadHistory, 500);
 
       // Якщо запит — DDL (CREATE, DROP, ALTER), оновлюємо схему
       const ddlRegex = /^(\s*)(CREATE|DROP|ALTER)\s+/i;
