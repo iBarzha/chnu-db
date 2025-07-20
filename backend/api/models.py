@@ -81,7 +81,7 @@ class TeacherDatabase(models.Model):
         limit_choices_to={'role': User.Role.TEACHER},
         related_name='uploaded_databases'
     )
-    sql_dump = models.FileField(upload_to='')
+    sql_dump = models.FileField(upload_to='teacher_dumps/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -94,10 +94,16 @@ class TemporaryDatabase(models.Model):
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='temporary_databases')
     teacher_database = models.ForeignKey(TeacherDatabase, on_delete=models.CASCADE, related_name='temporary_instances', null=True, blank=True)
-    database_name = models.CharField(max_length=100, unique=True)
-    session_key = models.CharField(max_length=40)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_used = models.DateTimeField(auto_now=True)
+    database_name = models.CharField(max_length=100, unique=True, db_index=True)
+    session_key = models.CharField(max_length=40, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_used = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'session_key'], name='temp_db_user_session_idx'),
+            models.Index(fields=['last_used'], name='temp_db_last_used_idx'),
+        ]
 
     def __str__(self):
         return f"Temp DB: {self.database_name} (User: {self.user.username})"
@@ -120,8 +126,14 @@ class Task(models.Model):
 class SQLHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sql_history')
     query = models.TextField()
-    executed_at = models.DateTimeField(auto_now_add=True)
+    executed_at = models.DateTimeField(auto_now_add=True, db_index=True)
     database = models.ForeignKey(TeacherDatabase, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-executed_at'], name='sql_history_user_time_idx'),
+        ]
+        ordering = ['-executed_at']
 
     def __str__(self):
         return f"{self.user.username}: {self.query[:30]}... ({self.executed_at})"

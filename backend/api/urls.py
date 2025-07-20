@@ -11,6 +11,7 @@ from .views import (
     sql_history,
     task_schema,
     task_submit,   # використовується тепер як «execute» (Preview SQL)
+    execute_sql_query,
 )
 
 # Створюємо роутер для ViewSet
@@ -33,14 +34,17 @@ urlpatterns = [
     # ----------------------------------------
     # 2) SQL-ендпоінти (як були в старому файлі: execute-sql/, database-schema/, sql-history/)
     # ----------------------------------------
-    # 2.a) «Preview SQL»: замість execute-sql/ → запускаємо SQL студента на початковому дампі через task_submit
+    # 2.a) Виконання SQL запитів в SQL редакторі
+    path('execute-sql/', execute_sql_query, name='execute-sql'),
+    
+    # 2.b) «Preview SQL»: замість execute-sql/ → запускаємо SQL студента на початковому дампі через task_submit
     #      Тепер за адресою POST /tasks/{pk}/execute/ (pk – id задачі)
     path('tasks/<int:pk>/execute/', task_submit, name='task-execute'),
 
-    # 2.b) Повернути схему довільної бази (старий database-schema/{database_id}/)
+    # 2.c) Повернути схему довільної бази (старий database-schema/{database_id}/)
     path('database-schema/<str:database_id>/', get_database_schema, name='database-schema'),
 
-    # 2.c) Історія SQL-запитів користувача (sql_history)
+    # 2.d) Історія SQL-запитів користувача (sql_history)
     path('sql-history/', sql_history, name='sql-history'),
 
     # ----------------------------------------
