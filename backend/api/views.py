@@ -27,28 +27,22 @@ logger = logging.getLogger(__name__)
 
 # Basic SQL query validation
 DANGEROUS_KEYWORDS = [
-    'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE',
-    'TRUNCATE', 'GRANT', 'REVOKE', 'EXEC', 'EXECUTE'
+    'GRANT', 'REVOKE', 'EXEC', 'EXECUTE'
 ]
 
 def validate_query(query):
-    """Basic SQL query validation for security"""
+    """Basic SQL query validation for security - allows DDL/DML since students work with isolated temporary databases"""
     if not query or len(query.strip()) == 0:
         return False, "Query cannot be empty"
     
     if len(query) > 10000:  # Prevent extremely long queries
         return False, "Query too long (max 10000 characters)"
     
-    # Check for dangerous keywords (basic protection)
+    # Check for dangerous keywords that could affect system security
     query_upper = query.upper()
     for keyword in DANGEROUS_KEYWORDS:
         if keyword in query_upper:
             return False, f"Keyword '{keyword}' is not allowed in queries"
-    
-    # Ensure query starts with SELECT
-    first_word = query_upper.strip().split()[0] if query_upper.strip() else ""
-    if first_word != 'SELECT':
-        return False, "Only SELECT queries are allowed"
     
     return True, ""
 
