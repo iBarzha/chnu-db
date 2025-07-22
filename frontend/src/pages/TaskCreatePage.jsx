@@ -1,4 +1,4 @@
-// TaskCreatePage.jsx
+// \u0421\u0442\u043e\u0440\u0456\u043d\u043a\u0430 \u0441\u0442\u0432\u043e\u0440\u0435\u043d\u043d\u044f \u043d\u043e\u0432\u043e\u0433\u043e \u0437\u0430\u0432\u0434\u0430\u043d\u043d\u044f
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -80,7 +80,7 @@ export default function TaskCreatePage() {
       const blob2 = await (await fetch(refRes.data.sql_dump)).blob();
       fd.append('etalon_db', blob2, 'reference.sql');
 
-      // Debug: переконайтесь, що в fd є обидва ключі
+      // Debug: переконайтеся, що в fd є обидва ключі
       for (let [k, v] of fd.entries()) {
         console.log(k, v);
       }

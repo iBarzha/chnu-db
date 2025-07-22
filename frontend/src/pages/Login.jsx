@@ -9,38 +9,38 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 export default function Login() {
-  // Form state
+  // Стан форми
   const [form, setForm] = useState({
     username: '',
     password: ''
   });
 
-  // Form validation state
+  // Стан валідації форми
   const [formErrors, setFormErrors] = useState({
     username: '',
     password: ''
   });
 
-  // UI state
+  // Стан інтерфейсу
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
 
-  // Hooks
+  // Хуки
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
 
-  // Redirect if already authenticated
+  // Переспрямовуємо, якщо користувач вже аутентифікований
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  // Check for 'registered' parameter in URL
+  // Перевіряємо параметр 'registered' в URL
   useEffect(() => {
     if (location.search.includes('registered=true')) {
       setMessage({ 
@@ -51,7 +51,7 @@ export default function Login() {
     }
   }, [location, t]);
 
-  // Validate form fields
+  // Валідуємо поля форми
   const validateForm = () => {
     let valid = true;
     const errors = { username: '', password: '' };
@@ -77,10 +77,10 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Clear previous messages
+    // Очищаємо попередні повідомлення
     setMessage({ text: '', type: '' });
 
-    // Validate form
+    // Валідуємо форму
     if (!validateForm()) {
       return;
     }
@@ -89,7 +89,7 @@ export default function Login() {
 
     try {
       await login(form.username, form.password);
-      // Redirect happens via the isAuthenticated effect
+      // Переспрямування відбувається через isAuthenticated effect
     } catch (err) {
       const errorMessage = err.response?.data?.detail || 
                           t('login.invalidCredentials');
@@ -100,18 +100,18 @@ export default function Login() {
     }
   };
 
-  // Handle input changes
+  // Обробляємо зміни в полях
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
 
-    // Clear error when user types
+    // Очищаємо помилку, коли користувач друкує
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  // Toggle password visibility
+  // Перемикаємо видимість пароля
   const handleTogglePasswordVisibility = () => {
     setShowPassword(prev => !prev);
   };

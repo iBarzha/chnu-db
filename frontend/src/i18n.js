@@ -2,11 +2,11 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Import translations
+// Імпорт перекладів
 import translationEN from './locales/en/translation.json';
 import translationUA from './locales/ua/translation.json';
 
-// Resources for i18next
+// Ресурси для i18next
 const resources = {
   en: {
     translation: translationEN
@@ -17,17 +17,17 @@ const resources = {
 };
 
 i18n
-  // Detect user language
+  // Визначаємо мову користувача
   .use(LanguageDetector)
-  // Pass the i18n instance to react-i18next
+  // Передаємо інстанс i18n в react-i18next
   .use(initReactI18next)
-  // Initialize i18next
+  // Ініціалізуємо i18next
   .init({
     resources,
     fallbackLng: 'en',
     debug: process.env.NODE_ENV === 'development',
     interpolation: {
-      escapeValue: false, // React already escapes values
+      escapeValue: false, // React вже екранує значення
     },
     detection: {
       order: ['localStorage', 'navigator'],

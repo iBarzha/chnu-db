@@ -116,7 +116,7 @@ const SQLEditorPage = () => {
       return;
     }
     
-    // Client-side validation for better UX
+    // Клієнтська валідація для кращого UX
     if (trimmedSql.length > 10000) {
       setError('Запит надто довгий (максимум 10000 символів)');
       return;
@@ -143,7 +143,7 @@ const SQLEditorPage = () => {
       setResults(response.data.results || []);
       setExecutionTime(response.data.execution_time);
       
-      // Handle warnings for truncated results
+      // Обробляємо попередження щодо обрізаних результатів
       if (response.data.warning) {
         setError(`Увага: ${response.data.warning}`);
       }

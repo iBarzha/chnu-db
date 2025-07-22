@@ -25,7 +25,7 @@ Course.objects: Manager
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# Basic SQL query validation
+# Базова валідація SQL запитів
 DANGEROUS_KEYWORDS = [
     'GRANT', 'REVOKE', 'EXEC', 'EXECUTE'
 ]
@@ -35,10 +35,10 @@ def validate_query(query):
     if not query or len(query.strip()) == 0:
         return False, "Query cannot be empty"
     
-    if len(query) > 10000:  # Prevent extremely long queries
+    if len(query) > 10000:  # Запобігаємо надзвичайно довгим запитам
         return False, "Query too long (max 10000 characters)"
     
-    # Check for dangerous keywords that could affect system security
+    # Перевіряємо небезпечні ключові слова, які можуть вплинути на безпеку системи
     query_upper = query.upper()
     for keyword in DANGEROUS_KEYWORDS:
         if keyword in query_upper:
@@ -95,7 +95,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Use select_related and prefetch_related for better performance
+        # Використовуємо select_related та prefetch_related для кращої продуктивності
         queryset = Course.objects.select_related('teacher').prefetch_related('students').annotate(assignments_count=Count('tasks'))
         
         if user.role == User.Role.TEACHER:
@@ -105,7 +105,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         elif user.role == User.Role.ADMIN:
             return queryset
         else:
-            # For safety, return empty queryset for unknown roles
+            # Для безпеки повертаємо порожній queryset для невідомих ролей
             return Course.objects.none()
 
     def perform_create(self, serializer):
@@ -445,7 +445,7 @@ def execute_sql_query(request):
     if not database_id:
         return Response({'error': 'Оберіть базу даних перед виконанням запитів.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validate query for security
+    # Валідуємо запит для безпеки
     is_valid, error_msg = validate_query(query)
     if not is_valid:
         logger.warning(f"Invalid query attempt by user {request.user.username}: {error_msg}")
@@ -500,7 +500,7 @@ def execute_sql_query(request):
 
                 db_name = f"temp_db_{uuid.uuid4().hex[:16]}"
                 
-                # Validate database name (additional security)
+                # Валідуємо назву бази даних (додаткова безпека)
                 if not db_name.replace('_', '').replace('-', '').isalnum():
                     raise ValueError("Invalid database name generated")
                 
@@ -516,8 +516,8 @@ def execute_sql_query(request):
                 temp_conn.autocommit = True
                 temp_cursor = temp_conn.cursor()
 
-                # Set timeout for dump restoration
-                temp_cursor.execute("SET statement_timeout = 60000")  # 60 seconds
+                # Встановлюємо таймаут для відновлення дампу
+                temp_cursor.execute("SET statement_timeout = 60000")  # 60 секунд
                 
                 with open(sql_dump_path, 'r', encoding='utf-8') as f:
                     temp_cursor.execute(f.read())
@@ -536,7 +536,7 @@ def execute_sql_query(request):
                 logger.info(f"Created temporary database {db_name} for user {request.user.username}")
                 
             except Exception as e:
-                # Cleanup on failure
+                # Очищення при помилці
                 if admin_conn:
                     try:
                         admin_cursor = admin_conn.cursor()
@@ -548,7 +548,7 @@ def execute_sql_query(request):
                 logger.error(f"Failed to create temporary database for user {request.user.username}: {e}")
                 raise e
             finally:
-                # Ensure connections are closed
+                # Переконуємося, що з'єднання закриті
                 if temp_conn:
                     temp_conn.close()
                 if admin_conn:
@@ -568,19 +568,19 @@ def execute_sql_query(request):
         conn.autocommit = True
         cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         
-        # Set query timeout (30 seconds)
+        # Встановлюємо таймаут запиту (30 секунд)
         cursor.execute("SET statement_timeout = 30000")
         
-        # Execute query with result limit for security
+        # Виконуємо запит із обмеженням результатів для безпеки
         cursor.execute(query)
         
         columns = [desc[0] for desc in cursor.description] if cursor.description else []
         
-        # Limit results to prevent memory issues
+        # Обмежуємо результати для запобігання проблем із пам'яттю
         MAX_RESULTS = 1000
         if cursor.description:
             rows = cursor.fetchmany(MAX_RESULTS)
-            # Check if there are more results
+            # Перевіряємо, чи є ще результати
             has_more = cursor.fetchone() is not None
         else:
             rows = []
@@ -588,7 +588,7 @@ def execute_sql_query(request):
             
         results = [dict(row) for row in rows]
         
-        # Log query execution for monitoring
+        # Логуємо виконання запиту для моніторингу
         logger.info(f"Query executed by {request.user.username}: {len(results)} rows returned")
 
         SQLHistory.objects.create(
@@ -880,12 +880,12 @@ def sql_history(request):
     """
     Повертає історію SQL-запитів користувача з пагінацією.
     """
-    # Get pagination parameters
+    # Отримуємо параметри пагінації
     page = int(request.GET.get('page', 1))
-    page_size = min(int(request.GET.get('page_size', 25)), 100)  # Max 100 items per page
+    page_size = min(int(request.GET.get('page_size', 25)), 100)  # Максимум 100 елементів на сторінку
     offset = (page - 1) * page_size
     
-    # Use select_related for better performance
+    # Використовуємо select_related для кращої продуктивності
     history_queryset = SQLHistory.objects.filter(user=request.user).select_related('database').order_by('-executed_at')
     total_count = history_queryset.count()
     history = history_queryset[offset:offset + page_size]
@@ -893,7 +893,7 @@ def sql_history(request):
     data = [
         {
             'id': h.id,
-            'query': h.query[:200] + '...' if len(h.query) > 200 else h.query,  # Truncate long queries
+            'query': h.query[:200] + '...' if len(h.query) > 200 else h.query,  # Обрізаємо довгі запити
             'executed_at': h.executed_at,
             'database_id': h.database.id if h.database else None,
             'database_name': h.database.name if h.database else None

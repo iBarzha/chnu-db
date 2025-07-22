@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Get base URL from environment or use default
+// Отримуємо базовий URL із середовища або використовуємо за замовчуванням
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-// Configure CSRF protection for Django
+// Налаштовуємо CSRF захист для Django
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
@@ -12,18 +12,18 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 seconds timeout
-    withCredentials: true, // Важно для передачи sessionid
+    timeout: 10000, // Таймаут 10 секунд
+    withCredentials: true, // Важливо для передачі sessionid
 });
 
-// Helper to check if token is expired
+// Допоміжна функція для перевірки закінчення терміну дії токена
 const isTokenExpired = () => {
     const expiry = sessionStorage.getItem('tokenExpiry');
-    if (!expiry) return true; // Expiry not set
-    return new Date().getTime() > parseInt(expiry, 10); // Check if current time exceeds expiry
+    if (!expiry) return true; // Термін не встановлено
+    return new Date().getTime() > parseInt(expiry, 10); // Перевіряємо, чи поточний час перевищує термін дії
 };
 
-// Request interceptor - add token to requests
+// Перехоплювач запитів - додаємо токен до запитів
 api.interceptors.request.use(
     config => {
         const token = sessionStorage.getItem('token');
@@ -38,42 +38,42 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - handle token expiration and errors globally
+// Перехоплювач відповідей - обробляємо закінчення дії токенів та помилки глобально
 api.interceptors.response.use(
-    response => response, // Pass through successful responses
+    response => response, // Пропускаємо успішні відповіді
     async error => {
         const originalRequest = error.config;
 
-        // Detect Unauthorized (401) errors and retry if appropriate
+        // Виявляємо помилки Unauthorized (401) та повторюємо за потреби
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
-                // Check if the token is expired
+                // Перевіряємо, чи закінчився термін дії токена
                 if (isTokenExpired()) {
                     const refreshToken = sessionStorage.getItem('refreshToken');
 
                     if (!refreshToken) {
-                        // No refresh token: redirect to login
+                        // Немає refresh token: переспрямовуємо на сторінку входу
                         console.warn('No refresh token found. Redirecting to login...');
                         window.location.href = '/login';
                         return Promise.reject(error);
                     }
 
-                    // Attempt to refresh tokens
+                    // Намагаємося оновити токени
                     const refreshResponse = await axios.post(`${BASE_URL}/api/auth/token/refresh/`, {
                         refresh: refreshToken,
                     });
 
                     if (refreshResponse.data.access) {
-                        // Store the new access token
+                        // Зберігаємо новий access token
                         const newAccessToken = refreshResponse.data.access;
 
                         sessionStorage.setItem('token', newAccessToken);
-                        const expiresAt = new Date().getTime() + 60 * 60 * 1000; // 1 hour from now
+                        const expiresAt = new Date().getTime() + 60 * 60 * 1000; // 1 година від поточного моменту
                         sessionStorage.setItem('tokenExpiry', expiresAt.toString());
 
-                        // Retry the original request with the new access token
+                        // Повторюємо оригінальний запит з новим access token
                         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                         console.log('Token refreshed, retrying original request...');
                         return api(originalRequest);
@@ -82,7 +82,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 console.error('Token refresh failed:', refreshError);
 
-                // Clear any invalid tokens and redirect to login
+                // Очищаємо недійсні токени та переспрямовуємо на сторінку входу
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('refreshToken');
                 sessionStorage.removeItem('tokenExpiry');
@@ -90,7 +90,7 @@ api.interceptors.response.use(
             }
         }
 
-        // Log other types of errors for debugging
+        // Логуємо інші типи помилок для налагодження
         if (!error.response) {
             console.error('Network or Server Error:', error.message);
         } else {

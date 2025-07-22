@@ -111,7 +111,7 @@ export default function CoursesPage() {
     initialValues: {
       title: '',
       description: '',
-      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Default to 1 week from now
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // \u0417\u0430 \u0437\u0430\u043c\u043e\u0432\u0447\u0443\u0432\u0430\u043d\u043d\u044f\u043c \u0442\u0438\u0436\u0434\u0435\u043d\u044c \u0432\u0456\u0434 \u0441\u044c\u043e\u0433\u043e\u0434\u043d\u0456
     },
     validationSchema: Yup.object({
       title: Yup.string().required('Title is required'),
